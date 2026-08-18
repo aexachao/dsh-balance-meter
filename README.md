@@ -46,7 +46,18 @@ dsh plugin --profile web add ds-budget-meter@0.1.0     # 指定版本
 
 然后**重启** profile / 应用，浏览器 **Cmd+Shift+R 强刷**。
 
-### 方式二：源码安装（未发布 / 开发时）
+### 方式二：GitHub tag tarball 一行安装
+
+`lib/` 构建产物随仓库提交，因此可以像 dsh-at-file 一样直接装 tag 归档（无需 clone / 构建）：
+
+```sh
+dsh plugin --profile web add \
+  https://github.com/ai-suifeng/dsh-budget-meter/archive/refs/tags/v0.1.0.tar.gz
+```
+
+同样重启 + 强刷生效。
+
+### 方式三：源码安装（开发时）
 
 #### 1. 克隆并构建
 
@@ -113,6 +124,14 @@ NPM_OTP=<6位码> NPM_TOKEN=<token> ./scripts/publish.sh  # 2FA 账号
 
 脚本流程：构建 `lib/` → 版本已在注册表则自动 bump → `npm publish --access public`
 → `npm view` 验证上线。token 只从环境变量读取，不落盘。
+
+发布后记得打 tag（方式二的 tarball 安装依赖 tag 归档）：
+
+```sh
+git add -A && git commit -m "release: v$(node -p "require('./package.json').version")"
+git tag "v$(node -p "require('./package.json').version")"
+git push && git push --tags
+```
 
 ## 配置
 

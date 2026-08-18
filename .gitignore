@@ -1,2 +1,3 @@
 node_modules/
-lib/
+# lib/ is intentionally COMMITTED (built artifacts) so the GitHub tag tarball
+# can be installed directly: dsh plugin add <tag tarball URL> does not build.
