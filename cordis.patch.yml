@@ -1,0 +1,5 @@
+# ds-budget-meter bundle patch: insert the plugin row into the host composition.
+# A top-level YAML array of loader patch entries; applied after every bundle layer.
+- insert:
+    - id: ds-budget-meter
+      name: ds-budget-meter

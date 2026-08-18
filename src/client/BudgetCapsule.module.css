@@ -1,0 +1,221 @@
+/*
+ * The framework's shell.overlay layer (the slot this entry renders into) is
+ * documented as "above every column" but ships z-index 20, while right-side
+ * panels (details/Explorer) sit at 40 — so an open panel paints over the
+ * capsule and its banners. Restore the documented order for the layer only.
+ */
+:global([class*='overlayLayer']) {
+  z-index: 60;
+}
+
+.root {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  pointer-events: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-primary, #e5e7eb);
+}
+
+.capsule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-layer-1, #171a21);
+  border: 1px solid var(--dsw-alias-border-l1, #27272a);
+  color: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.3);
+}
+
+.bar {
+  width: 56px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--dsw-alias-bg-layer-2, #262b36);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  background: var(--dsw-alias-brand-primary, #4d6bfe);
+  transition: width 0.3s ease;
+}
+
+.root[data-tone='warn'] .barFill,
+.root[data-tone='warn'] .progressFill {
+  background: #f59e0b;
+}
+
+.root[data-tone='over'] .barFill,
+.root[data-tone='over'] .progressFill {
+  background: var(--dsw-alias-state-error-primary, #f87171);
+}
+
+.bandTag {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--dsw-alias-label-secondary, #a1a1aa);
+  background: var(--dsw-alias-bg-layer-2, #262b36);
+}
+
+.bandTag[data-peak] {
+  color: #f59e0b;
+}
+
+.text {
+  font-variant-numeric: tabular-nums;
+  color: var(--dsw-alias-label-secondary, #a1a1aa);
+}
+
+.card {
+  width: 268px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-layer-1, #171a21);
+  border: 1px solid var(--dsw-alias-border-l1, #27272a);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardTitle {
+  flex: 1;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.band {
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary, #a1a1aa);
+}
+
+.band[data-peak] {
+  color: #f59e0b;
+}
+
+.iconButton {
+  flex: none;
+  border: 0;
+  background: none;
+  color: var(--dsw-alias-label-secondary, #a1a1aa);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 12px;
+}
+
+.progressBar {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-layer-2, #262b36);
+  overflow: hidden;
+  margin: 4px 0;
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  background: var(--dsw-alias-brand-primary, #4d6bfe);
+  transition: width 0.3s ease;
+}
+
+.progressLabel {
+  position: absolute;
+  right: 4px;
+  top: -16px;
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary, #a1a1aa);
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--dsw-alias-label-secondary, #a1a1aa);
+}
+
+.row > span:last-child {
+  color: var(--dsw-alias-label-primary, #e5e7eb);
+  font-variant-numeric: tabular-nums;
+}
+
+.section {
+  margin-top: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dsw-alias-label-secondary, #a1a1aa);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--dsw-alias-label-secondary, #a1a1aa);
+}
+
+.field input,
+.field select {
+  width: 108px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--dsw-alias-border-l1, #27272a);
+  background: var(--dsw-alias-bg-layer-2, #262b36);
+  color: var(--dsw-alias-label-primary, #e5e7eb);
+  font-size: 12px;
+}
+
+.resetButton {
+  margin-top: 4px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--dsw-alias-border-l1, #27272a);
+  background: var(--dsw-alias-bg-layer-2, #262b36);
+  color: var(--dsw-alias-label-primary, #e5e7eb);
+  cursor: pointer;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1, #171a21);
+  border: 1px solid var(--dsw-alias-border-l1, #27272a);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+}
+
+.toastText {
+  flex: 1;
+}
+
+.toast[data-level='warn'] {
+  border-color: #f59e0b;
+}
+
+.toast[data-level='over'] {
+  border-color: var(--dsw-alias-state-error-primary, #f87171);
+}
