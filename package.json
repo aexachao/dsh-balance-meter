@@ -1,8 +1,27 @@
 {
   "name": "ds-budget-meter",
   "version": "0.1.0",
-  "private": true,
-  "description": "Token budget meter for DeepSeek Harness: converts session token usage into CNY at DeepSeek V4 peak/off-peak pricing, shows a floating progress capsule, and warns when the configured budget is approached or exceeded.",
+  "description": "Token budget meter for DeepSeek Harness: converts session token usage into CNY at DeepSeek V4 peak/off-peak pricing, shows a floating progress capsule, and warns or auto-stops when the configured budget is approached or exceeded.",
+  "author": "ai-suifeng",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ai-suifeng/dsh-budget-meter.git"
+  },
+  "homepage": "https://github.com/ai-suifeng/dsh-budget-meter#readme",
+  "bugs": {
+    "url": "https://github.com/ai-suifeng/dsh-budget-meter/issues"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "cordis",
+    "plugin",
+    "budget",
+    "token",
+    "cost",
+    "ui"
+  ],
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -21,7 +40,8 @@
   "files": [
     "lib",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {
@@ -37,7 +57,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.client.json && tsdown",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json --noEmit",
-    "verify": "node scripts/verify.mjs"
+    "verify": "node scripts/verify.mjs",
+    "release": "bash scripts/publish.sh"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",

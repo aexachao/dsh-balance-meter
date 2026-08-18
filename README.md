@@ -35,7 +35,20 @@ DeepSeek Harness（`dsh`）的 **token 预算提醒插件**：把会话的 token
 
 ## 安装
 
-### 1. 克隆并构建
+### 方式一：npm 注册表按名字安装（推荐）
+
+包发布到 npm 后（见下文「发布」），与 dsh-context 等插件同款一行安装：
+
+```sh
+dsh plugin --profile web add ds-budget-meter           # latest
+dsh plugin --profile web add ds-budget-meter@0.1.0     # 指定版本
+```
+
+然后**重启** profile / 应用，浏览器 **Cmd+Shift+R 强刷**。
+
+### 方式二：源码安装（未发布 / 开发时）
+
+#### 1. 克隆并构建
 
 ```sh
 git clone git@github.com:ai-suifeng/dsh-budget-meter.git
@@ -44,7 +57,7 @@ pnpm install
 pnpm build        # 产出 lib/index.js（host）+ lib/client.js（client bundle）
 ```
 
-### 2. 安装到 profile
+#### 2. 安装到 profile
 
 桌面应用默认 profile 为 `web`；`DSH_HOME` 默认为 `~/.dsh`
 （桌面应用为 `~/Library/Application Support/deepseek-harness-desktop/harness-home`）。
@@ -59,7 +72,7 @@ dsh plugin --profile web add "$(pwd)"
 > 若发生，手工编辑 `~/.dsh/profiles/web/package.json` 补回后在 profile 目录执行
 > `pnpm install` 即可（见下文「手工安装」）。
 
-### 3. 手工安装（不用 CLI 时的等价做法）
+#### 3. 手工安装（不用 CLI 时的等价做法）
 
 在 `~/.dsh/profiles/web/package.json` 中加入：
 
@@ -84,11 +97,22 @@ dsh plugin --profile web add "$(pwd)"
 
 然后 `cd ~/.dsh/profiles/web && pnpm install`。
 
-### 4. 生效
+#### 4. 生效
 
 - **重启** profile / 应用（host 组合树只在启动时加载）；
 - 浏览器 **Cmd+Shift+R 强刷**页面（client 名册在页面加载时注入；已打开的旧页面
   不会自动拿到新 bundle）。
+
+## 发布（维护者）
+
+```sh
+NPM_TOKEN=<npmjs token> ./scripts/publish.sh          # 已发布过则自动 bump patch
+NPM_TOKEN=<token> ./scripts/publish.sh minor          # 强制 bump 类型
+NPM_OTP=<6位码> NPM_TOKEN=<token> ./scripts/publish.sh  # 2FA 账号
+```
+
+脚本流程：构建 `lib/` → 版本已在注册表则自动 bump → `npm publish --access public`
+→ `npm view` 验证上线。token 只从环境变量读取，不落盘。
 
 ## 配置
 
