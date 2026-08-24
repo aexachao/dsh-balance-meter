@@ -1,17 +1,17 @@
 /**
- * ds-budget-meter client half: registers a floating budget capsule into the
- * layout's `shell.overlay` list slot (the framework's designated seat for
- * badges / status pills / toast stacks) and starts the usage tracker that
- * converts the current session's token usage into CNY. The capsule also
- * shows the real DeepSeek account balance from the host /budget/balance
- * endpoint.
+ * ds-budget-meter client half: registers the budget capsule into the
+ * conversation session header's `conversation.session.header.utilities`
+ * list slot (the seat holding the session-log export button), rendered
+ * before it via CSS order. Starts the usage tracker that converts the
+ * current session's token usage into CNY. The capsule shows the real
+ * DeepSeek account balance from the host /budget/balance endpoint.
  */
 
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: load the ctx.locale merge (dsh-client-locale) and the SlotMap
-// merge that typechecks the 'shell.overlay' key.
+// merges that typecheck the 'conversation.session.header.utilities' key.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
-import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { en, zh, type BudgetKey } from './locales.ts'
 import { BudgetCapsule } from './BudgetCapsule.tsx'
 import { initTracker } from './tracker.ts'
@@ -26,6 +26,9 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 /** Dictionary namespace owned by this plugin. */
 const NS = 'ds-budget-meter'
 
+/** 会话头部工具区槽位：与 session log 导出按钮同一排。 */
+const HEADER_UTILITIES = 'conversation.session.header.utilities'
+
 /** Services required by the plugin. */
 export const inject = ['slots', 'sessions', 'locale']
 
@@ -38,14 +41,13 @@ export function apply(ctx: ClientContext, config?: unknown): void {
 
   ctx.effect(() => initTracker(ctx), 'ds-budget-meter: usage tracker')
 
-  // shell.overlay is declared by the layout frame at boot; wait for the
-  // declaration, then register the capsule (disposal cascades on unload).
+  // 注册到会话头部工具区（session log 按钮左侧，靠 CSS order: -1 排最前）。
   ctx.effect(
-    () => ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-      name: 'shell.overlay',
+    () => ctx.slots.inject(HEADER_UTILITIES, () => ctx.slots.register({
+      name: HEADER_UTILITIES,
       id: 'ds-budget-meter',
       locale: NS,
     }, BudgetCapsule)),
-    'ds-budget-meter: overlay capsule',
+    'ds-budget-meter: header capsule',
   )
 }

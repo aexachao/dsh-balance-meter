@@ -17,7 +17,7 @@ import {
 } from './store.ts'
 import css from './BudgetCapsule.module.css'
 
-type BudgetCapsuleProps = PropsRuntime<'shell.overlay'> & PropsLocale<'ds-budget-meter'>
+type BudgetCapsuleProps = PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<'ds-budget-meter'>
 
 /** 充值快捷跳转目标（外链，由桌面端桥接在系统浏览器打开）。 */
 const TOP_UP_URL = 'https://platform.deepseek.com/top_up'

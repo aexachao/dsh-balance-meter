@@ -22,6 +22,12 @@ test('client bundle reads from the host /budget/balance endpoint', () => {
   assert.match(code, /budget\/balance/)
 })
 
+test('client bundle registers into the session header utilities slot', () => {
+  const code = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
+  assert.match(code, /conversation\.session\.header\.utilities/)
+  assert.doesNotMatch(code, /shell\.overlay/)
+})
+
 test('client bundle materializes apply/inject with the required services', () => {
   const require = createRequire(import.meta.url)
   const code = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')

@@ -1,27 +1,18 @@
 /*
- * 原版（预算追踪）CSS 的融合改造：定位（右下角固定 + overlay z-index 补丁）、
- * 胶囊/卡片/toast/表单的视觉 token 全部沿用原版；删除了进度条样式
- * （额度/百分比概念已移除），新增余额分项与充值按钮样式。
- *
- * The framework's shell.overlay layer (the slot this entry renders into) is
- * documented as "above every column" but ships z-index 20, while right-side
- * panels (details/Explorer) sit at 40 — so an open panel paints over the
- * capsule and its banners. Restore the documented order for the layer only.
+ * 胶囊现在渲染在会话头部工具区（conversation.session.header.utilities，
+ * session log 按钮所在的那一排），不再是右下角悬浮：
+ * - .root 保持内容宽度，order: -1 让它排在工具区最左（session log 左侧）；
+ * - 卡片 absolute 相对胶囊下方展开；backdrop 全屏遮罩点击关闭；
+ * - 胶囊/卡片/toast/表单的视觉 token 沿用原版。
  */
-:global([class*='overlayLayer']) {
-  z-index: 60;
-}
 
 .root {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 80;
-  display: flex;
+  position: relative;
+  order: -1;
+  display: inline-flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 8px;
-  pointer-events: auto;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   font-size: 12px;
   line-height: 1.5;
@@ -99,7 +90,9 @@
 }
 
 .card {
-  position: relative;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
   z-index: 100;
   width: 268px;
   display: flex;
