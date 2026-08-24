@@ -1,8 +1,8 @@
 <div align="center">
-  <img src="assets/readme/hero.svg" width="100%" alt="ds-budget-meter: 顶部余额胶囊与展开卡片示意" />
+  <img src="assets/readme/hero.svg" width="100%" alt="dsh-balance-tracker: 顶部余额胶囊与展开卡片示意" />
 </div>
 
-**ds-budget-meter** 是一个 [DeepSeek Harness](https://github.com/deepseek-ai/dsh)（`dsh`）插件：在会话头部**实时显示 DeepSeek 账户余额与今日花费**，按金额设置提醒阈值，一键跳转充值。由 [ai-suifeng/dsh-budget-meter](https://github.com/ai-suifeng/dsh-budget-meter) fork 而来（MIT，见[下方声明](#-开源与许可)）。
+**dsh-balance-tracker** 是一个 [DeepSeek Harness](https://github.com/deepseek-ai/dsh)（`dsh`）插件：在会话头部**实时显示 DeepSeek 账户余额与今日花费**，按金额设置提醒阈值，一键跳转充值。由 [ai-suifeng/dsh-budget-meter](https://github.com/ai-suifeng/dsh-budget-meter) fork 而来（MIT，见[下方声明](#-开源与许可)）。
 
 ## 特性
 
@@ -39,12 +39,12 @@
 ```jsonc
 {
   "dependencies": {
-    "ds-budget-meter": "link:/绝对路径/dsh-budget-meter"
+    "dsh-balance-tracker": "link:/绝对路径/dsh-balance-meter"
     // ...其它依赖
   },
   "dsh": {
     "profile": {
-      "bundles": [ /* ...其它 bundle */, "ds-budget-meter" ]
+      "bundles": [ /* ...其它 bundle */, "dsh-balance-tracker" ]
     }
   }
 }
