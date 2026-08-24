@@ -1,221 +1,182 @@
-/*
- * The framework's shell.overlay layer (the slot this entry renders into) is
- * documented as "above every column" but ships z-index 20, while right-side
- * panels (details/Explorer) sit at 40 — so an open panel paints over the
- * capsule and its banners. Restore the documented order for the layer only.
- */
-:global([class*='overlayLayer']) {
-  z-index: 60;
-}
+/* Balance capsule + card (real DeepSeek account balance). */
 
-.root {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 80;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-  pointer-events: auto;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--dsw-alias-label-primary, #e5e7eb);
+.wrap {
+  position: relative;
+  display: inline-flex;
 }
 
 .capsule {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 999px;
-  background: var(--dsw-alias-bg-layer-1, #171a21);
-  border: 1px solid var(--dsw-alias-border-l1, #27272a);
-  color: inherit;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-secondary);
   cursor: pointer;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.3);
+  font-size: 12px;
+  transition: background-color 120ms ease, border-color 120ms ease;
 }
 
-.bar {
-  width: 56px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--dsw-alias-bg-layer-2, #262b36);
-  overflow: hidden;
+.capsule:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 
-.barFill {
-  display: block;
-  height: 100%;
-  background: var(--dsw-alias-brand-primary, #4d6bfe);
-  transition: width 0.3s ease;
+.capsule.ok .dot {
+  background: var(--dsw-alias-state-success-primary);
 }
 
-.root[data-tone='warn'] .barFill,
-.root[data-tone='warn'] .progressFill {
-  background: #f59e0b;
+.capsule.warn .dot {
+  background: var(--dsw-alias-state-warn-primary);
 }
 
-.root[data-tone='over'] .barFill,
-.root[data-tone='over'] .progressFill {
-  background: var(--dsw-alias-state-error-primary, #f87171);
+.capsule.error .dot {
+  background: var(--dsw-alias-state-error-primary);
 }
 
-.bandTag {
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
   flex: none;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 10px;
-  line-height: 1.4;
-  color: var(--dsw-alias-label-secondary, #a1a1aa);
-  background: var(--dsw-alias-bg-layer-2, #262b36);
 }
 
-.bandTag[data-peak] {
-  color: #f59e0b;
+.label {
+  color: var(--dsw-alias-label-secondary);
 }
 
-.text {
+.value {
+  color: var(--dsw-alias-label-primary);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--dsw-alias-label-secondary, #a1a1aa);
+}
+
+.spin {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--dsw-alias-border-l2);
+  border-top-color: var(--dsw-alias-label-tertiary);
+  border-radius: 50%;
+  animation: budgetSpin 0.8s linear infinite;
+}
+
+@keyframes budgetSpin {
+  to { transform: rotate(360deg); }
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
 }
 
 .card {
-  width: 268px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px;
-  border-radius: 12px;
-  background: var(--dsw-alias-bg-layer-1, #171a21);
-  border: 1px solid var(--dsw-alias-border-l1, #27272a);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 100;
+  width: 240px;
+  padding: 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-overlay);
+  box-shadow: var(--dsw-shadow-lv3);
+  color: var(--dsw-alias-label-primary);
 }
 
 .cardHead {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 8px;
 }
 
 .cardTitle {
-  flex: 1;
-  font-weight: 600;
   font-size: 13px;
+  font-weight: 600;
 }
 
-.band {
-  font-size: 11px;
-  color: var(--dsw-alias-label-secondary, #a1a1aa);
-}
-
-.band[data-peak] {
-  color: #f59e0b;
-}
-
-.iconButton {
-  flex: none;
-  border: 0;
+.close {
+  border: none;
   background: none;
-  color: var(--dsw-alias-label-secondary, #a1a1aa);
+  color: var(--dsw-alias-label-tertiary);
   cursor: pointer;
+  font-size: 12px;
   padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.close:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.balanceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+}
+
+.balanceLabel {
+  color: var(--dsw-alias-label-secondary);
   font-size: 12px;
 }
 
-.progressBar {
-  position: relative;
-  height: 8px;
-  border-radius: 4px;
-  background: var(--dsw-alias-bg-layer-2, #262b36);
-  overflow: hidden;
-  margin: 4px 0;
-}
-
-.progressFill {
-  display: block;
-  height: 100%;
-  background: var(--dsw-alias-brand-primary, #4d6bfe);
-  transition: width 0.3s ease;
-}
-
-.progressLabel {
-  position: absolute;
-  right: 4px;
-  top: -16px;
-  font-size: 11px;
-  color: var(--dsw-alias-label-secondary, #a1a1aa);
-}
-
-.row {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  color: var(--dsw-alias-label-secondary, #a1a1aa);
-}
-
-.row > span:last-child {
-  color: var(--dsw-alias-label-primary, #e5e7eb);
+.balanceValue {
+  font-size: 13px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.section {
-  margin-top: 6px;
+.currency {
+  margin-top: 2px;
+  color: var(--dsw-alias-label-tertiary);
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--dsw-alias-label-secondary, #a1a1aa);
 }
 
-.field {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  color: var(--dsw-alias-label-secondary, #a1a1aa);
-}
-
-.field input,
-.field select {
-  width: 108px;
-  padding: 3px 6px;
+.error {
+  margin: 4px 0;
+  padding: 6px 8px;
   border-radius: 6px;
-  border: 1px solid var(--dsw-alias-border-l1, #27272a);
-  background: var(--dsw-alias-bg-layer-2, #262b36);
-  color: var(--dsw-alias-label-primary, #e5e7eb);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 12%, transparent);
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.empty {
+  padding: 14px 0;
+  text-align: center;
+  color: var(--dsw-alias-label-tertiary);
   font-size: 12px;
 }
 
-.resetButton {
-  margin-top: 4px;
-  padding: 5px 8px;
-  border-radius: 8px;
-  border: 1px solid var(--dsw-alias-border-l1, #27272a);
-  background: var(--dsw-alias-bg-layer-2, #262b36);
-  color: var(--dsw-alias-label-primary, #e5e7eb);
-  cursor: pointer;
-}
-
-.toast {
+.footer {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: var(--dsw-alias-bg-layer-1, #171a21);
-  border: 1px solid var(--dsw-alias-border-l1, #27272a);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--dsw-alias-border-l1);
 }
 
-.toastText {
-  flex: 1;
+.refresh {
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+  font-size: 12px;
 }
 
-.toast[data-level='warn'] {
-  border-color: #f59e0b;
+.refresh:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-active);
 }
 
-.toast[data-level='over'] {
-  border-color: var(--dsw-alias-state-error-primary, #f87171);
+.refresh:disabled {
+  opacity: 0.6;
+  cursor: default;
 }

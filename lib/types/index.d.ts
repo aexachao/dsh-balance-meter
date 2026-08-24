@@ -1,25 +1,37 @@
 /**
- * ds-budget-meter host half: a no-op plugin row. All behavior lives in the
- * client bundle (the meter reads token usage from session snapshots in the
- * browser); the host row only occupies its composition-tree seat so the
- * bundle layer can contribute the client roster entry and patch.
+ * ds-budget-meter host half: real DeepSeek account balance.
+ *
+ * Reads the API key from `~/.dsh/.credentials.yaml` (DEEPSEEK_API_KEY) and
+ * queries the official balance endpoint.  The client capsule shows the real
+ * account balance instead of estimated spending — no manual budget caps or
+ * periods.
  */
 import type { Context } from '@deepseek-ai/cordis';
 import z from '@deepseek-ai/schemastery';
 export declare const name = "ds-budget-meter";
 export interface Config {
-    /** Budget cap for one period, in CNY. */
-    budgetYuan: number;
-    /** How the budget window resets: natural day, natural month, or never. */
-    period: 'daily' | 'monthly' | 'total';
-    /** Percentage of the budget at which the first warning fires (1-100). */
-    warnPercent: number;
-    /** Cancel the running turn once when the period budget is exceeded. */
-    stopOnOver: boolean;
-    /** Comma-separated HH:MM-HH:MM peak windows, interpreted in `pricingTimezone`. */
-    peakWindows: string;
-    /** IANA time zone the peak windows refer to (official pricing is Beijing time). */
-    pricingTimezone: string;
+    /** Reserved for future use; the card refreshes on demand + every 60s. */
+    refreshSeconds: number;
 }
 export declare const Config: z<Config>;
-export declare function apply(_ctx: Context, _config: Config): void;
+/** Balance row from the DeepSeek API. */
+export interface BalanceInfo {
+    currency: string;
+    totalBalance: string;
+    grantedBalance: string;
+    toppedUpBalance: string;
+}
+export interface BalanceView {
+    ok: boolean;
+    error?: string;
+    isAvailable?: boolean;
+    balanceInfos?: BalanceInfo[];
+}
+/** DeepSeek 凭证文本（`KEY: value` 行）→ API key；找不到返回 null。 */
+export declare function parseApiKey(text: string): string | null;
+/** 仅允许本机回环地址访问余额端点。 */
+export declare function isLoopbackAddress(addr: string): boolean;
+/** DeepSeek API 响应（snake_case）→ BalanceView（camelCase）。 */
+export declare function mapBalanceResponse(data: unknown): BalanceView;
+export declare const inject: string[];
+export declare function apply(ctx: Context, _config: Config): void;

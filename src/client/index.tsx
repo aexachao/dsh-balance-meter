@@ -1,19 +1,16 @@
 /**
- * ds-budget-meter client half: registers a floating budget capsule into the
- * layout's `shell.overlay` list slot (the framework's designated seat for
- * badges / status pills / toast stacks) and starts the usage tracker that
- * converts the current session's token usage into CNY.
+ * ds-budget-meter client half: registers a floating balance capsule into the
+ * layout's `shell.overlay` list slot.  The capsule shows the real DeepSeek
+ * account balance fetched from the host /budget/balance endpoint.
  */
 
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
-// Type-only: load the ctx.locale merge (dsh-client-locale) and the SlotMap
-// merge that typechecks the 'shell.overlay' key.
+// Type-only: load the ctx.locale merge and the SlotMap merge for
+// 'shell.overlay'.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import { en, zh, type BudgetKey } from './locales.ts'
 import { BudgetCapsule } from './BudgetCapsule.tsx'
-import { initTracker } from './tracker.ts'
-import { seedSettingsFromConfig } from './store.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -25,25 +22,14 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const NS = 'ds-budget-meter'
 
 /** Services required by the plugin. */
-export const inject = ['slots', 'sessions', 'locale']
+export const inject = ['slots', 'locale']
 
-export function apply(ctx: ClientContext, config?: unknown): void {
-  // Row config (when the loader passes one) seeds the defaults; the user can
-  // still override everything from the capsule card, persisted locally.
-  seedSettingsFromConfig(config)
-
+export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ds-budget-meter: dictionaries')
 
-  ctx.effect(() => initTracker(ctx), 'ds-budget-meter: usage tracker')
-
-  // shell.overlay is declared by the layout frame at boot; wait for the
-  // declaration, then register the capsule (disposal cascades on unload).
-  ctx.effect(
-    () => ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-      name: 'shell.overlay',
-      id: 'ds-budget-meter',
-      locale: NS,
-    }, BudgetCapsule)),
-    'ds-budget-meter: overlay capsule',
-  )
+  ctx.effect(() => ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay',
+    id: 'ds-budget-meter',
+    locale: NS,
+  }, BudgetCapsule)), 'ds-budget-meter: balance capsule')
 }

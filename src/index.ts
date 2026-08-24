@@ -8,6 +8,9 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
+import z from '@deepseek-ai/schemastery'
+// Type-only: merge the webServer service declaration into cordis Context.
+import type {} from '@deepseek-ai/dsh-host-webserver'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -16,13 +19,13 @@ import path from 'node:path'
 export const name = 'ds-budget-meter'
 
 export interface Config {
-  /** Manual refresh only (the card has a refresh button). */
+  /** Reserved for future use; the card refreshes on demand + every 60s. */
   refreshSeconds: number
 }
 
-export const Config = {
-  refreshSeconds: 0,
-}
+export const Config: z<Config> = z.object({
+  refreshSeconds: z.number().min(0).max(3600).default(0),
+})
 
 const BALANCE_ENDPOINT = 'https://api.deepseek.com/user/balance'
 
@@ -41,24 +44,56 @@ export interface BalanceView {
   balanceInfos?: BalanceInfo[]
 }
 
+/** DeepSeek 凭证文本（`KEY: value` 行）→ API key；找不到返回 null。 */
+export function parseApiKey(text: string): string | null {
+  for (const line of text.split(/\r?\n/)) {
+    const m = /^DEEPSEEK_API_KEY\s*:\s*(\S+)/.exec(line.trim())
+    if (m) return m[1] ?? null
+  }
+  return null
+}
+
 /** Read the API key from the dsh credentials file (structure: `KEY: value`). */
 function readApiKey(): string | null {
   try {
     const credPath = path.join(os.homedir(), '.dsh', '.credentials.yaml')
-    const text = fs.readFileSync(credPath, 'utf8')
-    for (const line of text.split(/\r?\n/)) {
-      const m = /^DEEPSEEK_API_KEY\s*:\s*(\S+)/.exec(line.trim())
-      if (m) return m[1]
-    }
-    return null
+    return parseApiKey(fs.readFileSync(credPath, 'utf8'))
   } catch {
     return null
   }
 }
 
-function isLoopback(req: IncomingMessage): boolean {
-  const addr = req.socket.remoteAddress ?? ''
+/** 仅允许本机回环地址访问余额端点。 */
+export function isLoopbackAddress(addr: string): boolean {
   return addr === '127.0.0.1' || addr === '::1' || addr === '::ffff:127.0.0.1'
+}
+
+function isLoopback(req: IncomingMessage): boolean {
+  return isLoopbackAddress(req.socket.remoteAddress ?? '')
+}
+
+/** DeepSeek API 响应（snake_case）→ BalanceView（camelCase）。 */
+export function mapBalanceResponse(data: unknown): BalanceView {
+  if (typeof data !== 'object' || data === null) {
+    return { ok: false, error: 'invalid response shape' }
+  }
+  const raw = data as {
+    is_available?: boolean
+    balance_infos?: { currency: string; total_balance: string; granted_balance: string; topped_up_balance: string }[]
+  }
+  if (!Array.isArray(raw.balance_infos)) {
+    return { ok: false, error: 'invalid response shape' }
+  }
+  return {
+    ok: true,
+    isAvailable: raw.is_available ?? false,
+    balanceInfos: raw.balance_infos.map((b) => ({
+      currency: b.currency,
+      totalBalance: b.total_balance,
+      grantedBalance: b.granted_balance,
+      toppedUpBalance: b.topped_up_balance,
+    })),
+  }
 }
 
 function writeJson(res: ServerResponse, status: number, body: unknown): void {
@@ -100,20 +135,8 @@ export function apply(ctx: Context, _config: Config): void {
         writeJson(res, 502, { ok: false, error: `DeepSeek API ${r.status}` } as BalanceView)
         return
       }
-      const data = await r.json() as {
-        is_available?: boolean
-        balance_infos?: { currency: string; total_balance: string; granted_balance: string; topped_up_balance: string }[]
-      }
-      writeJson(res, 200, {
-        ok: true,
-        isAvailable: data.is_available ?? false,
-        balanceInfos: (data.balance_infos ?? []).map((b) => ({
-          currency: b.currency,
-          totalBalance: b.total_balance,
-          grantedBalance: b.granted_balance,
-          toppedUpBalance: b.topped_up_balance,
-        })),
-      } as BalanceView)
+      const view = mapBalanceResponse(await r.json())
+      writeJson(res, view.ok ? 200 : 502, view)
     } catch (error) {
       writeJson(res, 502, {
         ok: false,
@@ -127,5 +150,5 @@ export function apply(ctx: Context, _config: Config): void {
     path: '/budget/balance',
     handler,
   })
-  ctx.on('dispose', dispose)
+  ctx.effect(() => dispose, 'ds-budget-meter: balance route')
 }
