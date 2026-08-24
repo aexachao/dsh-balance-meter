@@ -129,6 +129,7 @@
 .band {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   font-size: 11px;
   color: var(--dsw-alias-label-secondary, #a1a1aa);
 }

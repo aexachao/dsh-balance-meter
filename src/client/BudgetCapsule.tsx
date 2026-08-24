@@ -157,7 +157,7 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
             <span className={css.cardTitle}>{t('card.title')}</span>
             {/* 状态圆点跟随「高峰/空闲」字段，而非整行最左。 */}
             <span className={css.band}>
-              {`${t('card.peakNow')}: `}
+              {`${t('card.peakNow')}:`}
               <span className={css.bandLabel} data-peak={peakNow || undefined}>
                 <span className={css.bandDot} data-peak={peakNow || undefined} />
                 {peakNow ? t('card.peak') : t('card.off')}
