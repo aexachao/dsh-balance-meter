@@ -14,6 +14,10 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import {
+  aggregatePlatformConsumption, advanceDayMeter, fetchPlatformMonth, localDate,
+  parseCredential, type DayMeterState, type PlatformDay,
+} from './platform.ts'
 
 export const name = 'ds-budget-meter'
 
@@ -50,26 +54,31 @@ export interface BalanceView {
   error?: string
   isAvailable?: boolean
   balanceInfos?: BalanceInfo[]
+  /** 今日已消费（元）：官方平台源或余额差值估算。 */
+  todayConsumed?: number
+  todayConsumedSource?: 'official' | 'estimate'
+  /** 累计消费（元，全部历史；仅官方平台源可用）。 */
+  totalConsumed?: number
+  totalConsumedSource?: 'official'
 }
 
 /** DeepSeek 凭证文本（`KEY: value` 行）→ API key；找不到返回 null。 */
 export function parseApiKey(text: string): string | null {
-  for (const line of text.split(/\r?\n/)) {
-    const m = /^DEEPSEEK_API_KEY\s*:\s*(\S+)/.exec(line.trim())
-    if (m) return m[1] ?? null
-  }
-  return null
+  return parseCredential(text, 'DEEPSEEK_API_KEY')
 }
 
-/** Read the API key from the dsh credentials file (structure: `KEY: value`). */
-function readApiKey(): string | null {
+/** 读取 `~/.dsh/.credentials.yaml` 中的 `NAME: value` 凭证；缺文件/缺行返回 null。 */
+function readCredential(name: string): string | null {
   try {
     const credPath = path.join(os.homedir(), '.dsh', '.credentials.yaml')
-    return parseApiKey(fs.readFileSync(credPath, 'utf8'))
+    return parseCredential(fs.readFileSync(credPath, 'utf8'), name)
   } catch {
     return null
   }
 }
+
+const readApiKey = (): string | null => readCredential('DEEPSEEK_API_KEY')
+const readPlatformToken = (): string | null => readCredential('DEEPSEEK_PLATFORM_TOKEN')
 
 /** 仅允许本机回环地址访问余额端点。 */
 export function isLoopbackAddress(addr: string): boolean {
@@ -113,10 +122,69 @@ function writeJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(text)
 }
 
+/** 官方消费当日缓存（存 storages，避免每天重复遍历历史月份）。 */
+export interface ConsumedCache {
+  date: string
+  todayConsumed: number
+  totalConsumed: number
+}
+
 /** 余额端点的外部依赖（默认实现见 apply；测试时注入 mock）。 */
 export interface BalanceDeps {
   readKey: () => string | null
+  readPlatformToken: () => string | null
   fetchUpstream: (key: string) => Promise<Response>
+  fetchMonth: (month: number, year: number) => Promise<PlatformDay[] | null>
+  loadConsumedCache: () => ConsumedCache | null
+  saveConsumedCache: (cache: ConsumedCache) => void
+  loadDayMeter: () => DayMeterState | null
+  saveDayMeter: (state: DayMeterState) => void
+}
+
+/**
+ * 给余额视图附加消费数据：有 DEEPSEEK_PLATFORM_TOKEN 时用官方平台
+ * usage/cost（今日 + 全历史累计，当日缓存）；否则用余额差值估算今日
+ * （无历史时首日消费为 0，次日开始有差值）。平台失败不阻塞余额展示。
+ */
+async function attachConsumption(view: BalanceView, deps: BalanceDeps): Promise<void> {
+  const token = deps.readPlatformToken()
+  const today = localDate()
+  if (token) {
+    const cache = deps.loadConsumedCache()
+    if (cache !== null && cache.date === today) {
+      view.todayConsumed = cache.todayConsumed
+      view.totalConsumed = cache.totalConsumed
+      view.todayConsumedSource = 'official'
+      view.totalConsumedSource = 'official'
+      return
+    }
+    try {
+      const agg = await aggregatePlatformConsumption((month, year) => deps.fetchMonth(month, year))
+      if (agg !== null) {
+        view.todayConsumed = agg.today
+        view.totalConsumed = agg.total
+        view.todayConsumedSource = 'official'
+        view.totalConsumedSource = 'official'
+        deps.saveConsumedCache({ date: today, todayConsumed: agg.today, totalConsumed: agg.total })
+      }
+    } catch {
+      // 平台接口失败（token 过期等）→ 消费字段留空，client 侧隐藏。
+    }
+    return
+  }
+
+  const primary = view.balanceInfos?.[0]
+  if (primary !== undefined) {
+    const balance = Number(primary.totalBalance)
+    if (Number.isFinite(balance)) {
+      const { state, consumed } = advanceDayMeter(deps.loadDayMeter(), today, balance)
+      deps.saveDayMeter(state)
+      if (consumed !== null) {
+        view.todayConsumed = consumed
+        view.todayConsumedSource = 'estimate'
+      }
+    }
+  }
 }
 
 /** 构造 /budget/balance 处理器；依赖可注入以便单元测试完整 HTTP 契约。 */
@@ -146,6 +214,7 @@ export function createBalanceHandler(deps: BalanceDeps) {
         return
       }
       const view = mapBalanceResponse(await r.json())
+      if (view.ok) await attachConsumption(view, deps)
       writeJson(res, view.ok ? 200 : 502, view)
     } catch (error) {
       writeJson(res, 502, {
@@ -156,15 +225,53 @@ export function createBalanceHandler(deps: BalanceDeps) {
   }
 }
 
+// ── storages 持久化（官方消费当日缓存 / 余额差值日计量） ─────────────────────
+
+function storagePath(name: string): string {
+  const dir = process.env.DSH_HOME
+    ? path.join(process.env.DSH_HOME, 'storages')
+    : path.join(os.homedir(), '.dsh', 'storages')
+  return path.join(dir, name)
+}
+
+function readJsonFile<T>(file: string): T | null {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(file, 'utf8')) as T
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeJsonFile(file: string, value: unknown): void {
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    const tmp = `${file}.tmp`
+    fs.writeFileSync(tmp, JSON.stringify(value), 'utf8')
+    fs.renameSync(tmp, file)
+  } catch {
+    // 持久化失败只影响缓存命中率，不阻塞余额展示。
+  }
+}
+
 export const inject = ['webServer']
 
 export function apply(ctx: Context, _config: Config): void {
+  const consumedCacheFile = storagePath('ds-budget-meter-consumed.json')
+  const dayMeterFile = storagePath('ds-budget-meter-day.json')
+
   const handler = createBalanceHandler({
     readKey: readApiKey,
+    readPlatformToken,
     fetchUpstream: (key) => fetch(BALANCE_ENDPOINT, {
       headers: { Authorization: `Bearer ${key}` },
       signal: AbortSignal.timeout(10_000),
     }),
+    fetchMonth: (month, year) => fetchPlatformMonth(readPlatformToken() ?? '', month, year),
+    loadConsumedCache: () => readJsonFile<ConsumedCache>(consumedCacheFile),
+    saveConsumedCache: (cache) => { writeJsonFile(consumedCacheFile, cache) },
+    loadDayMeter: () => readJsonFile<DayMeterState>(dayMeterFile),
+    saveDayMeter: (state) => { writeJsonFile(dayMeterFile, state) },
   })
 
   const dispose = ctx.webServer.register({

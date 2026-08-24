@@ -8,6 +8,7 @@
 import type { Context } from '@deepseek-ai/cordis';
 import z from '@deepseek-ai/schemastery';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { type DayMeterState, type PlatformDay } from './platform.ts';
 export declare const name = "ds-budget-meter";
 export interface Config {
     /** 本日花费达到该金额（元）时提醒；stopOnOver 时同时取消当前回合。 */
@@ -32,6 +33,12 @@ export interface BalanceView {
     error?: string;
     isAvailable?: boolean;
     balanceInfos?: BalanceInfo[];
+    /** 今日已消费（元）：官方平台源或余额差值估算。 */
+    todayConsumed?: number;
+    todayConsumedSource?: 'official' | 'estimate';
+    /** 累计消费（元，全部历史；仅官方平台源可用）。 */
+    totalConsumed?: number;
+    totalConsumedSource?: 'official';
 }
 /** DeepSeek 凭证文本（`KEY: value` 行）→ API key；找不到返回 null。 */
 export declare function parseApiKey(text: string): string | null;
@@ -39,10 +46,22 @@ export declare function parseApiKey(text: string): string | null;
 export declare function isLoopbackAddress(addr: string): boolean;
 /** DeepSeek API 响应（snake_case）→ BalanceView（camelCase）。 */
 export declare function mapBalanceResponse(data: unknown): BalanceView;
+/** 官方消费当日缓存（存 storages，避免每天重复遍历历史月份）。 */
+export interface ConsumedCache {
+    date: string;
+    todayConsumed: number;
+    totalConsumed: number;
+}
 /** 余额端点的外部依赖（默认实现见 apply；测试时注入 mock）。 */
 export interface BalanceDeps {
     readKey: () => string | null;
+    readPlatformToken: () => string | null;
     fetchUpstream: (key: string) => Promise<Response>;
+    fetchMonth: (month: number, year: number) => Promise<PlatformDay[] | null>;
+    loadConsumedCache: () => ConsumedCache | null;
+    saveConsumedCache: (cache: ConsumedCache) => void;
+    loadDayMeter: () => DayMeterState | null;
+    saveDayMeter: (state: DayMeterState) => void;
 }
 /** 构造 /budget/balance 处理器；依赖可注入以便单元测试完整 HTTP 契约。 */
 export declare function createBalanceHandler(deps: BalanceDeps): (req: IncomingMessage, res: ServerResponse) => Promise<void>;
