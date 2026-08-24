@@ -58,6 +58,7 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.client.json && tsdown",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json --noEmit",
     "test": "pnpm build && node --test \"test/*.test.mjs\"",
+    "read-token": "node scripts/read-token.mjs",
     "release": "bash scripts/publish.sh"
   },
   "peerDependencies": {

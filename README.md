@@ -63,7 +63,18 @@ DEEPSEEK_API_KEY: sk-xxx            # 必需：余额查询
 DEEPSEEK_PLATFORM_TOKEN: xxx        # 可选：官方累计/今日消费
 ```
 
-> `DEEPSEEK_PLATFORM_TOKEN` 获取：登录 platform.deepseek.com → 浏览器开发者工具 → Application → Local Storage → 复制 `userToken` 值。不配置时「今日已花费」为余额差值估算（≈），「累计（含往期）」隐藏。
+`DEEPSEEK_PLATFORM_TOKEN`（platform.deepseek.com 登录态的 `userToken`）两种获取方式：
+
+**自动探测（推荐）**——登录 platform.deepseek.com 后，运行：
+
+```sh
+pnpm read-token     # 扫描本机 Chrome / Edge / Brave / Arc 等的 Local Storage，
+                    # 提取 userToken 并写入凭证文件（不打印、不上传）
+```
+
+**手动**——浏览器开发者工具 → Application → Local Storage → 复制 `userToken` 值。
+
+不配置时「今日已花费」为余额差值估算（≈），「累计（含往期）」隐藏。
 
 ### 3. 生效
 
