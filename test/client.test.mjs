@@ -42,7 +42,7 @@ test('client bundle materializes apply/inject with the required services', () =>
     assert.equal(loaded?.id, 'ds-budget-meter')
     const exports = loaded.factory(require)
     assert.equal(typeof exports.apply, 'function')
-    assert.deepEqual(exports.inject, ['slots', 'locale'])
+    assert.deepEqual(exports.inject, ['slots', 'sessions', 'locale'])
   } finally {
     globalThis.window = prevWindow
     rmSync(dir, { recursive: true, force: true })

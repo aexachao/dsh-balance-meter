@@ -1,7 +1,7 @@
 /*
- * 原版（预算追踪）CSS 的余额改造：定位（右下角固定 + overlay z-index 补丁）、
- * 胶囊/卡片/toast 的视觉 token 全部沿用原版；删除了进度条与设置表单
- * （余额没有进度/额度语义），新增总余额大字与加载旋转。
+ * 原版（预算追踪）CSS 的融合改造：定位（右下角固定 + overlay z-index 补丁）、
+ * 胶囊/卡片/toast/表单的视觉 token 全部沿用原版；删除了进度条样式
+ * （额度/百分比概念已移除），新增余额分项与充值按钮样式。
  *
  * The framework's shell.overlay layer (the slot this entry renders into) is
  * documented as "above every column" but ships z-index 20, while right-side
@@ -51,16 +51,8 @@
   background: var(--dsw-alias-bg-layer-2, #262b36);
 }
 
-.bandTag[data-tone='ok'] {
-  color: var(--dsw-alias-state-success-primary, #34d399);
-}
-
-.bandTag[data-tone='empty'] {
+.bandTag[data-peak] {
   color: #f59e0b;
-}
-
-.bandTag[data-tone='error'] {
-  color: var(--dsw-alias-state-error-primary, #f87171);
 }
 
 .text {
@@ -113,16 +105,8 @@
   color: var(--dsw-alias-label-secondary, #a1a1aa);
 }
 
-.band[data-tone='ok'] {
-  color: var(--dsw-alias-state-success-primary, #34d399);
-}
-
-.band[data-tone='empty'] {
+.band[data-peak] {
   color: #f59e0b;
-}
-
-.band[data-tone='error'] {
-  color: var(--dsw-alias-state-error-primary, #f87171);
 }
 
 .iconButton {
@@ -135,11 +119,26 @@
   font-size: 12px;
 }
 
-.balanceTotal {
+/* ── 余额区块 ── */
+
+.balanceSection {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin: 4px 0;
+  gap: 5px;
+  margin: 2px 0 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1, #27272a);
+}
+
+.balanceTotal {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.balanceTotalLabel {
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary, #a1a1aa);
 }
 
 .balanceTotalValue {
@@ -148,11 +147,23 @@
   font-variant-numeric: tabular-nums;
   color: var(--dsw-alias-label-primary, #e5e7eb);
   line-height: 1.2;
+  flex: 1;
 }
 
-.balanceTotalLabel {
+.topUp {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--dsw-alias-border-l2, #3f3f46);
+  background: var(--dsw-alias-bg-layer-2, #262b36);
+  color: var(--dsw-alias-brand-primary, #4d6bfe);
+  text-decoration: none;
   font-size: 11px;
-  color: var(--dsw-alias-label-secondary, #a1a1aa);
+  cursor: pointer;
+}
+
+.topUp:hover {
+  background: var(--dsw-alias-interactive-bg-hover, #33363e);
 }
 
 .row {
@@ -167,10 +178,31 @@
   font-variant-numeric: tabular-nums;
 }
 
-.empty {
-  padding: 14px 0;
-  text-align: center;
-  color: var(--dsw-alias-label-tertiary, #71717a);
+.section {
+  margin-top: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dsw-alias-label-secondary, #a1a1aa);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--dsw-alias-label-secondary, #a1a1aa);
+}
+
+.field input[type='number'],
+.field select {
+  width: 108px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--dsw-alias-border-l1, #27272a);
+  background: var(--dsw-alias-bg-layer-2, #262b36);
+  color: var(--dsw-alias-label-primary, #e5e7eb);
+  font-size: 12px;
 }
 
 .resetButton {
@@ -181,11 +213,6 @@
   background: var(--dsw-alias-bg-layer-2, #262b36);
   color: var(--dsw-alias-label-primary, #e5e7eb);
   cursor: pointer;
-}
-
-.resetButton:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 
 .toast {
@@ -202,6 +229,10 @@
 
 .toastText {
   flex: 1;
+}
+
+.toast[data-level='warn'] {
+  border-color: #f59e0b;
 }
 
 .toast[data-level='error'] {

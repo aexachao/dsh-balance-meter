@@ -1,8 +1,17 @@
 # ds-budget-meter
 
-DeepSeek Harness（`dsh`）的 **真实余额监控插件**：从 host 的
-`/budget/balance` 端点读取 DeepSeek 官方账户余额（而非按 token 估算），
-在界面右下角显示悬浮余额胶囊；点击展开卡片查看余额构成与刷新。
+DeepSeek Harness（`dsh`）的 **余额监控 + 用量追踪插件**（原版预算追踪插件的
+自维护 fork 改造）：
+
+- **真实余额**：host 端调用 DeepSeek 官方余额接口，右下角悬浮胶囊主显
+  `余额 ¥xx.xx`，展开卡片查看总余额 / 赠送 / 充值分项，附**充值快捷跳转**
+  （一键打开 DeepSeek 充值页）；
+- **用量追踪**（保留原版）：按官方峰谷定价把会话 token 消耗折算成人民币，
+  统计**今日花费与累计**、本日 token 分项、按模型花费；
+- **高峰 / 空闲标签**（保留原版）：胶囊与卡片显示当前时段（默认北京
+  09:00–12:00、14:00–18:00 为高峰）；
+- **按金额的花费提醒**：今日花费达到设置阈值（元）时弹 8 秒 toast；
+  开启「达到阈值自动停止回合」后同时取消当前回合（每周期一次）。
 
 ![capsule](docs/screenshot-capsule.png)
 
@@ -10,12 +19,18 @@ DeepSeek Harness（`dsh`）的 **真实余额监控插件**：从 host 的
 
 ## 功能
 
-- **右下角悬浮胶囊**：状态点 + `余额 ¥xx.xx`，绿色（正常）/ 黄色（无余额数据）/
-  红色（查询失败）三态；
-- **展开卡片**：总余额、赠送余额、充值余额分项 + 币种 + 手动刷新按钮；
+- **右下角悬浮胶囊**：高峰/空闲时段标签 + `余额 ¥xx.xx`，查询中显示加载
+  旋转；点击展开卡片；
+- **展开卡片**：余额分项（总余额大字 / 赠送 / 充值）+ 充值跳转、今日已花费
+  与累计（含往期）、今日 tokens（输入缓存命中/未命中、输出）、按模型花费、
+  设置区（花费提醒阈值（元）、达到阈值自动停止回合、重置今日）；
 - **真实数据源**：host 端带 API key 调用 DeepSeek 官方
   `GET https://api.deepseek.com/user/balance`，与官网 / 开发后台看到的余额一致；
-- **自动刷新**：首次挂载即查询，之后每 60 秒自动刷新（不占用额外配置）；
+- **余额自动刷新**：首次挂载即查询，之后每 60 秒自动刷新；
+- **用量按官方峰谷定价**（元/百万 tokens，与
+  [DeepSeek 价目表](https://api-docs.deepseek.com/zh-cn/quick_start/pricing) 一致）：
+  flash 输入 1.5/3.0、输出 4.5/9.0；pro 输入 4.5/9.0、输出 13.5/27.0
+  （闲/峰；缓存命中另按低费率）；模型按请求自动识别 flash / pro 档；
 - **安全边界**：余额端点仅接受本机回环地址访问（防局域网探取），
   API key 只在 host 进程内使用、绝不下发到浏览器；
 - 中 / 英双语。
@@ -127,41 +142,57 @@ git push && git push --tags
 
 ## 配置
 
-默认值（可通过 profile patch 的插件 `config` 覆盖）：
+默认值（可通过 profile patch 的插件 `config` 覆盖；卡片设置区可再覆盖并
+持久化到 localStorage）：
 
 ```yaml
-refreshSeconds: 0    # 预留：后续版本支持自定义自动刷新间隔（秒）；
-                     # 当前版本固定首次挂载 + 每 60 秒自动刷新
+warnYuan: 20          # 今日花费提醒阈值（元），达到即弹 toast
+stopOnOver: true      # 达到阈值时自动取消当前回合（每周期一次）
+peakWindows: '09:00-12:00,14:00-18:00'   # 高峰窗口，北京时间，逗号分隔 HH:MM-HH:MM
+pricingTimezone: Asia/Shanghai
 ```
 
 ## 工作原理
 
-- **数据源**：client 胶囊向 host 的 `GET /budget/balance` 发起请求；host 读取
+- **余额数据源**：client 胶囊向 host 的 `GET /budget/balance` 发起请求；host 读取
   `~/.dsh/.credentials.yaml` 中的 `DEEPSEEK_API_KEY`，以
   `Authorization: Bearer <key>` 调用 DeepSeek 官方余额接口（10 秒超时），
   把响应里的 `balance_infos`（snake_case）映射为胶囊可用的 camelCase 结构；
 - **安全**：余额路由用 `webServer.register` 注册为 exact 路径；非回环地址一律
   403；API key 不经过任何前端代码；错误信息不包含 key；
-- **状态机**：`ok + 有余额` → 绿点；`ok + 无余额` → 黄点（卡片显示「暂无余额数据」）；
-  `请求失败` → 红点（胶囊保持上一次值，卡片显示错误详情）；
-- **client 注入**：`slots` + `locale` 两个服务；胶囊注册进布局的
-  `shell.overlay` 列表槽位；卸载时随 effect 自动回收。
+- **用量数据源**：client 订阅当前会话的 conversation 快照，对每条 finalized
+  assistant 消息的 `usage` 计费（wire 形状
+  `{ inputTokens, outputTokens, cacheReadTokens, reasoningTokens }`，OpenAI 式
+  形状作 fallback），按模型名与当前峰谷时段查价，账本按
+  `sessionId:messageId|seq` 去重并持久化 localStorage——重开会话、重启应用
+  不重复计费；统计固定按天（自然日零点归零），累计（含往期）始终可见；
+- **提醒与停止**：今日花费 ≥ `warnYuan` 时弹 8 秒 toast（每周期一次）；
+  `stopOnOver` 开启时同时取消当前回合，防止继续消耗；
+- **充值跳转**：卡片「去充值」按钮为外链
+  （`https://platform.deepseek.com/top_up`），由桌面端桥接在系统浏览器打开；
+- **client 注入**：`slots` + `sessions` + `locale` 三个服务；胶囊注册进布局的
+  `shell.overlay` 列表槽位（右下角固定）；卸载时随 effect 自动回收。
 
 ## 开发
 
 ```sh
 pnpm typecheck   # 双 program（host + client）
 pnpm build       # tsc host → tsc client → tsdown
-pnpm test        # 构建后跑 node --test 单元测试（host 端点契约 + client bundle）
+pnpm test        # 构建后跑 node --test 单元测试（host 端点 / pricing / usage / ledger / client bundle）
 ```
 
 ## 边界与限制
 
-- 展示的是 **DeepSeek 账户余额**（总 / 赠送 / 充值），不是会话消耗；
-- 自动刷新间隔当前固定 60 秒，`refreshSeconds` 为预留配置项；
+- 余额展示的是 **DeepSeek 账户余额**（总 / 赠送 / 充值）；花费统计为**本客户端
+  打开 / staged 过的会话**消耗（框架无跨会话 usage 聚合面），账本持久化保证
+  打开过的会话不重不漏、重启不丢；
+- 历史回放节点不带模型身份时按 flash 价计（宁晚提醒不早报）；中断未 finalize
+  的请求没有 usage，不计费（保守少计）；缓存命中数缺失时按 0 命中、全部输入
+  走未命中价（保守高估）；
 - 未配置 `DEEPSEEK_API_KEY`（`~/.dsh/.credentials.yaml`）时胶囊显示查询失败态，
   卡片给出缺失提示；
-- 余额接口偶发限流/超时由 10 秒超时 + 下次轮询自然恢复，不打断使用。
+- 余额接口偶发限流/超时由 10 秒超时 + 每 60 秒轮询自然恢复，不打断使用；
+- 文本按 UTF-8 计费统计，与账单的微小舍入差异属正常。
 
 ## 许可
 

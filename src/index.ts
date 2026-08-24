@@ -1,10 +1,9 @@
 /**
- * ds-budget-meter host half: real DeepSeek account balance.
+ * ds-budget-meter host half: 预算配置 + 真实 DeepSeek 账户余额端点。
  *
- * Reads the API key from `~/.dsh/.credentials.yaml` (DEEPSEEK_API_KEY) and
- * queries the official balance endpoint.  The client capsule shows the real
- * account balance instead of estimated spending — no manual budget caps or
- * periods.
+ * 原版（token 用量估算）的预算配置字段原样保留，另加余额查询：
+ * 读取 `~/.dsh/.credentials.yaml`（DEEPSEEK_API_KEY）并调用官方余额
+ * 接口；client 胶囊展示真实余额，同时保留原版的本周期花费统计。
  */
 
 import type { Context } from '@deepseek-ai/cordis'
@@ -19,12 +18,21 @@ import path from 'node:path'
 export const name = 'ds-budget-meter'
 
 export interface Config {
-  /** Reserved for future use; the card refreshes on demand + every 60s. */
-  refreshSeconds: number
+  /** 本日花费达到该金额（元）时提醒；stopOnOver 时同时取消当前回合。 */
+  warnYuan: number
+  /** 达到提醒阈值时自动取消当前回合（每周期一次）。 */
+  stopOnOver: boolean
+  /** Comma-separated HH:MM-HH:MM peak windows, interpreted in `pricingTimezone`. */
+  peakWindows: string
+  /** IANA time zone the peak windows refer to (official pricing is Beijing time). */
+  pricingTimezone: string
 }
 
 export const Config: z<Config> = z.object({
-  refreshSeconds: z.number().min(0).max(3600).default(0),
+  warnYuan: z.number().min(0.01).default(20),
+  stopOnOver: z.boolean().default(true),
+  peakWindows: z.string().default('09:00-12:00,14:00-18:00'),
+  pricingTimezone: z.string().default('Asia/Shanghai'),
 })
 
 const BALANCE_ENDPOINT = 'https://api.deepseek.com/user/balance'

@@ -1,18 +1,27 @@
 /**
  * The floating budget capsule (shell.overlay entry).
  *
- * 原版（预算追踪）的改造：数据源从「会话 token 用量 × 峰谷价估算」换成
- * host /budget/balance 端点的真实 DeepSeek 账户余额。定位（右下角固定）、
- * 胶囊与卡片的视觉样式沿用原版：胶囊 = 状态标签 + 余额文本；点击展开
- * 卡片 = 总余额大字 + 赠送/充值分项 + 刷新按钮。查询失败时沿用原版
- * toast 横幅结构（常驻、可手动关闭）。
+ * 原版预算追踪的融合改造：保留高峰/空闲时段标签、本日 token 分项、按模型
+ * 花费、按金额的花费提醒阈值与超额自动停止；删除原版的「额度 / 周期 /
+ * 百分比阈值 / 进度条」（预算上限概念由真实余额取代）。叠加真实 DeepSeek
+ * 账户余额（host /budget/balance）：胶囊主显余额，卡片顶部为余额分项与
+ * 充值快捷跳转。
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import { aggregateSince, periodStartMs } from './ledger.ts'
+import { isPeak, parsePeakWindows } from './pricing.ts'
+import {
+  clearNotified, getSettings, ledger, markNotified, subscribeSettings, updateSettings,
+  wasNotified,
+} from './store.ts'
 import css from './BudgetCapsule.module.css'
 
 type BudgetCapsuleProps = PropsRuntime<'shell.overlay'> & PropsLocale<'ds-budget-meter'>
+
+/** 充值快捷跳转目标（外链，由桌面端桥接在系统浏览器打开）。 */
+const TOP_UP_URL = 'https://platform.deepseek.com/top_up'
 
 interface BalanceInfo {
   currency: string
@@ -28,23 +37,38 @@ interface BalanceView {
   balanceInfos?: BalanceInfo[]
 }
 
-function formatYuan(value: string): string {
-  const n = Number(value)
-  if (Number.isNaN(n)) return value
-  if (n >= 100) return `¥${n.toFixed(0)}`
-  if (n >= 1) return `¥${n.toFixed(2)}`
-  if (n > 0) return `¥${n.toFixed(3)}`
+function formatYuan(value: number): string {
+  if (value >= 100) return `¥${value.toFixed(0)}`
+  if (value >= 1) return `¥${value.toFixed(2)}`
+  if (value > 0) return `¥${value.toFixed(3)}`
   return '¥0.00'
 }
 
-/** 余额查询状态：ok=正常 / empty=无余额数据 / error=查询失败。 */
-type Tone = 'ok' | 'empty' | 'error'
+/** 余额接口返回的是字符串金额，格式化同 formatYuan。 */
+function formatYuanText(value: string): string {
+  const n = Number(value)
+  if (Number.isNaN(n)) return value
+  return formatYuan(n)
+}
+
+function formatTokens(count: number): string {
+  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`
+  if (count >= 1_000) return `${(count / 1_000).toFixed(1)}k`
+  return String(count)
+}
 
 export function BudgetCapsule({ t }: BudgetCapsuleProps) {
+  // ── 账本 / 设置（固定按天统计） ──
+  useSyncExternalStore(ledger.subscribe, ledger.getSnapshotVersion)
+  const settings = useSyncExternalStore(subscribeSettings, getSettings)
   const [expanded, setExpanded] = useState(false)
+  const [toast, setToast] = useState(false)
+  const [, setTick] = useState(0)
+
+  // ── 余额：host /budget/balance ──
   const [view, setView] = useState<BalanceView | null>(null)
   const [loading, setLoading] = useState(false)
-  const [dismissed, setDismissed] = useState(false)
+  const [balanceDismissed, setBalanceDismissed] = useState(false)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -58,28 +82,61 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
     }
   }, [])
 
-  // 首次挂载 + 每 60 秒自动刷新（沿用原版的分针 tick 节奏）。
+  // 分钟 tick：让高峰/空闲标签与「今日」边界保持诚实（原版机制）。
+  useEffect(() => {
+    const timer = setInterval(() => setTick((n) => n + 1), 60_000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // 余额：首次挂载 + 每 60 秒自动刷新。
   useEffect(() => {
     void refresh()
     const timer = setInterval(() => { void refresh() }, 60_000)
     return () => clearInterval(timer)
   }, [refresh])
 
-  const primary = view?.ok && view.balanceInfos?.length ? view.balanceInfos[0] : null
-  const tone: Tone = view?.ok ? (primary ? 'ok' : 'empty') : 'error'
-  const statusLabel = view?.ok ? (primary ? t('status.ok') : t('status.empty')) : t('status.error')
+  const now = Date.now()
+  const start = periodStartMs('daily', now)
+  const totals = aggregateSince(ledger.all(), start)
+  const totalAllCost = aggregateSince(ledger.all(), 0).cost
+  const periodKey = `daily:${start}`
+
+  // 达到金额阈值：每周期弹一次 8 秒 toast（提醒 + 停止均由 toast 表述）。
+  useEffect(() => {
+    if (totals.cost >= settings.warnYuan && !wasNotified(periodKey, 'warn')) {
+      markNotified(periodKey, 'warn')
+      setToast(true)
+    }
+  }, [totals.cost, settings.warnYuan, periodKey])
+
+  useEffect(() => {
+    if (!toast) return
+    const timer = setTimeout(() => setToast(false), 8000)
+    return () => clearTimeout(timer)
+  }, [toast])
+
+  const peakNow = isPeak(now, parsePeakWindows(settings.peakWindows), settings.pricingTimezone)
+  const balance = view?.ok && view.balanceInfos?.length ? view.balanceInfos[0] : null
 
   return (
-    <div className={css.root} data-tone={tone}>
-      {/* 查询失败横幅：常驻、可手动关闭（原版 toast 结构）。 */}
-      {view && !view.ok && !dismissed && (
+    <div className={css.root}>
+      {toast && (
+        <div className={css.toast} data-level="warn" role="alert">
+          <span className={css.toastText}>
+            {t('toast.warn', { spent: formatYuan(totals.cost), warn: formatYuan(settings.warnYuan) })}
+          </span>
+        </div>
+      )}
+
+      {/* 余额查询失败横幅：常驻、可手动关闭。 */}
+      {view && !view.ok && !balanceDismissed && (
         <div className={css.toast} data-level="error" role="alert">
-          <span className={css.toastText}>{view.error ?? t('card.error')}</span>
+          <span className={css.toastText}>{view.error ?? t('card.balanceError')}</span>
           <button
             type="button"
             className={css.iconButton}
             aria-label={t('toast.close')}
-            onClick={() => { setDismissed(true) }}
+            onClick={() => { setBalanceDismissed(true) }}
           >
             ✕
           </button>
@@ -90,34 +147,86 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
         <div className={css.card}>
           <div className={css.cardHead}>
             <span className={css.cardTitle}>{t('card.title')}</span>
-            <span className={css.band} data-tone={tone}>{statusLabel}</span>
+            <span className={css.band} data-peak={peakNow || undefined}>
+              {`${t('card.peakNow')}: ${peakNow ? t('card.peak') : t('card.off')}`}
+            </span>
             <button type="button" className={css.iconButton} aria-label={t('card.close')} onClick={() => setExpanded(false)}>
               ✕
             </button>
           </div>
 
-          {primary != null && (
-            <>
+          {/* 余额区块：总余额大字 + 赠送/充值分项 + 充值快捷跳转。 */}
+          {balance && (
+            <div className={css.balanceSection}>
               <div className={css.balanceTotal}>
                 <span className={css.balanceTotalLabel}>{t('card.totalBalance')}</span>
-                <span className={css.balanceTotalValue}>{formatYuan(primary.totalBalance)}</span>
+                <span className={css.balanceTotalValue}>{formatYuanText(balance.totalBalance)}</span>
+                <a
+                  className={css.topUp}
+                  href={TOP_UP_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={t('card.topUpTitle')}
+                >
+                  {t('card.topUp')}
+                </a>
               </div>
-              <div className={css.row}><span>{t('card.grantedBalance')}</span><span>{formatYuan(primary.grantedBalance)}</span></div>
-              <div className={css.row}><span>{t('card.toppedUpBalance')}</span><span>{formatYuan(primary.toppedUpBalance)}</span></div>
-              <div className={css.row}><span>{t('card.currency')}</span><span>{primary.currency}</span></div>
-            </>
-          )}
-          {view?.ok && primary === null && (
-            <div className={css.empty}>{t('card.empty')}</div>
+              <div className={css.row}><span>{t('card.grantedBalance')}</span><span>{formatYuanText(balance.grantedBalance)}</span></div>
+              <div className={css.row}><span>{t('card.toppedUpBalance')}</span><span>{formatYuanText(balance.toppedUpBalance)}</span></div>
+            </div>
           )}
 
+          <div className={css.row}><span>{t('card.spent')}</span><span>{formatYuan(totals.cost)}</span></div>
+          <div className={css.row}><span>{t('card.totalAll')}</span><span>{formatYuan(totalAllCost)}</span></div>
+
+          <div className={css.section}>{t('card.tokens.title')}</div>
+          <div className={css.row}><span>{t('card.tokens.inputCached')}</span><span>{formatTokens(totals.cachedIn)}</span></div>
+          <div className={css.row}><span>{t('card.tokens.inputUncached')}</span><span>{formatTokens(totals.uncachedIn)}</span></div>
+          <div className={css.row}><span>{t('card.tokens.output')}</span><span>{formatTokens(totals.out)}</span></div>
+
+          {(totals.byModel.flash.cost > 0 || totals.byModel.pro.cost > 0) && (
+            <>
+              <div className={css.section}>{t('card.byModel')}</div>
+              {(['flash', 'pro'] as const).map((model) => (
+                totals.byModel[model].cost > 0 && (
+                  <div className={css.row} key={model}>
+                    <span>{model}</span>
+                    <span>{formatYuan(totals.byModel[model].cost)}</span>
+                  </div>
+                )
+              ))}
+            </>
+          )}
+
+          <div className={css.section}>{t('settings.title')}</div>
+          <label className={css.field}>
+            <span>{t('settings.warn')}</span>
+            <input
+              type="number"
+              min={1}
+              step={5}
+              key={`warn-${settings.warnYuan}`}
+              defaultValue={settings.warnYuan}
+              onBlur={(event) => {
+                const value = Number(event.target.value)
+                if (Number.isFinite(value) && value > 0) updateSettings({ warnYuan: value })
+              }}
+            />
+          </label>
+          <label className={css.field}>
+            <span>{t('settings.stopOnOver')}</span>
+            <input
+              type="checkbox"
+              checked={settings.stopOnOver}
+              onChange={(event) => updateSettings({ stopOnOver: event.target.checked })}
+            />
+          </label>
           <button
             type="button"
             className={css.resetButton}
-            disabled={loading}
-            onClick={() => { void refresh() }}
+            onClick={() => { ledger.resetSince(start); clearNotified(periodKey) }}
           >
-            {loading ? t('card.loading') : t('card.refresh')}
+            {t('card.reset')}
           </button>
         </div>
       )}
@@ -130,9 +239,11 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
         aria-expanded={expanded}
         onClick={() => setExpanded((value) => !value)}
       >
-        <span className={css.bandTag} data-tone={tone}>{statusLabel}</span>
+        <span className={css.bandTag} data-peak={peakNow || undefined}>
+          {peakNow ? t('card.peak') : t('card.off')}
+        </span>
         {loading && <span className={css.spin} />}
-        <span className={css.text}>{primary ? formatYuan(primary.totalBalance) : '—'}</span>
+        <span className={css.text}>{balance ? formatYuanText(balance.totalBalance) : '—'}</span>
       </button>
     </div>
   )
