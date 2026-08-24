@@ -260,8 +260,7 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
           <span className={css.bandDot} data-peak={peakNow || undefined} />
           {peakNow ? t('card.peak') : t('card.off')}
         </span>
-        {loading && <span className={css.spin} />}
-        <span className={css.text}>{balance ? formatYuanText(balance.totalBalance) : '—'}</span>
+        <span className={css.text}>{balance ? formatYuanText(balance.totalBalance) : '¥--'}</span>
       </button>
     </div>
   )

@@ -78,20 +78,6 @@
   white-space: nowrap;
 }
 
-.spin {
-  flex: none;
-  width: 10px;
-  height: 10px;
-  border: 2px solid var(--dsw-alias-border-l2, #3f3f46);
-  border-top-color: var(--dsw-alias-label-tertiary, #71717a);
-  border-radius: 50%;
-  animation: budgetSpin 0.8s linear infinite;
-}
-
-@keyframes budgetSpin {
-  to { transform: rotate(360deg); }
-}
-
 /* 点击空白处关闭卡片的透明遮罩：盖住页面但低于卡片。 */
 .backdrop {
   position: fixed;
