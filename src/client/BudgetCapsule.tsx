@@ -1,8 +1,11 @@
 /**
- * The floating balance capsule (shell.overlay entry): a pill showing the
- * real DeepSeek account balance; clicking it expands a card with the full
- * balance breakdown (total / granted / topped-up) and a refresh button.
- * Data comes from the host /budget/balance endpoint — no manual budgets.
+ * The floating budget capsule (shell.overlay entry).
+ *
+ * 原版（预算追踪）的改造：数据源从「会话 token 用量 × 峰谷价估算」换成
+ * host /budget/balance 端点的真实 DeepSeek 账户余额。定位（右下角固定）、
+ * 胶囊与卡片的视觉样式沿用原版：胶囊 = 状态标签 + 余额文本；点击展开
+ * 卡片 = 总余额大字 + 赠送/充值分项 + 刷新按钮。查询失败时沿用原版
+ * toast 横幅结构（常驻、可手动关闭）。
  */
 
 import { useCallback, useEffect, useState } from 'react'
@@ -25,112 +28,112 @@ interface BalanceView {
   balanceInfos?: BalanceInfo[]
 }
 
-function formatBalance(value: string): string {
+function formatYuan(value: string): string {
   const n = Number(value)
   if (Number.isNaN(n)) return value
-  if (n >= 100) return n.toFixed(0)
-  if (n >= 1) return n.toFixed(2)
-  return n.toFixed(3)
+  if (n >= 100) return `¥${n.toFixed(0)}`
+  if (n >= 1) return `¥${n.toFixed(2)}`
+  if (n > 0) return `¥${n.toFixed(3)}`
+  return '¥0.00'
 }
+
+/** 余额查询状态：ok=正常 / empty=无余额数据 / error=查询失败。 */
+type Tone = 'ok' | 'empty' | 'error'
 
 export function BudgetCapsule({ t }: BudgetCapsuleProps) {
   const [expanded, setExpanded] = useState(false)
   const [view, setView] = useState<BalanceView | null>(null)
   const [loading, setLoading] = useState(false)
-  const [lastError, setLastError] = useState<string | null>(null)
+  const [dismissed, setDismissed] = useState(false)
 
   const refresh = useCallback(async () => {
     setLoading(true)
-    setLastError(null)
     try {
       const r = await fetch('/budget/balance', { cache: 'no-store' })
-      const data = await r.json() as BalanceView
-      setView(data)
-      if (!data.ok) setLastError(data.error ?? '未知错误')
+      setView(await r.json() as BalanceView)
     } catch (error) {
-      setLastError(String(error))
+      setView({ ok: false, error: String(error) })
     } finally {
       setLoading(false)
     }
   }, [])
 
-  // 首次挂载 + 每 60 秒自动刷新
+  // 首次挂载 + 每 60 秒自动刷新（沿用原版的分针 tick 节奏）。
   useEffect(() => {
     void refresh()
     const timer = setInterval(() => { void refresh() }, 60_000)
     return () => clearInterval(timer)
   }, [refresh])
 
-  const primary = view?.ok && view.balanceInfos?.length
-    ? view.balanceInfos[0]
-    : null
-  const balanceText = primary ? `¥${formatBalance(primary.totalBalance)}` : '—'
-  const tone = view?.ok ? (primary ? 'ok' : 'warn') : 'error'
+  const primary = view?.ok && view.balanceInfos?.length ? view.balanceInfos[0] : null
+  const tone: Tone = view?.ok ? (primary ? 'ok' : 'empty') : 'error'
+  const statusLabel = view?.ok ? (primary ? t('status.ok') : t('status.empty')) : t('status.error')
 
   return (
-    <div className={css.wrap}>
-      <button
-        type="button"
-        className={`${css.capsule} ${css[tone]}`}
-        onClick={() => { setExpanded((open) => !open) }}
-        aria-expanded={expanded}
-        aria-label={t('capsule.label')}
-        title={t('capsule.title')}
-      >
-        <span className={css.dot} />
-        <span className={css.label}>{t('capsule.label')}</span>
-        <span className={css.value}>{balanceText}</span>
-        {loading && <span className={css.spin} />}
-      </button>
+    <div className={css.root} data-tone={tone}>
+      {/* 查询失败横幅：常驻、可手动关闭（原版 toast 结构）。 */}
+      {view && !view.ok && !dismissed && (
+        <div className={css.toast} data-level="error" role="alert">
+          <span className={css.toastText}>{view.error ?? t('card.error')}</span>
+          <button
+            type="button"
+            className={css.iconButton}
+            aria-label={t('toast.close')}
+            onClick={() => { setDismissed(true) }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {expanded && (
-        <>
-          <div className={css.backdrop} onClick={() => { setExpanded(false) }} />
-          <div className={css.card} role="dialog" aria-label={t('card.title')}>
-            <div className={css.cardHead}>
-              <span className={css.cardTitle}>{t('card.title')}</span>
-              <button type="button" className={css.close} onClick={() => { setExpanded(false) }} aria-label={t('card.close')}>✕</button>
-            </div>
-
-            {lastError !== null && (
-              <div className={css.error}>{lastError}</div>
-            )}
-
-            {primary != null && (
-              <>
-                <div className={css.balanceRow}>
-                  <span className={css.balanceLabel}>{t('card.totalBalance')}</span>
-                  <span className={css.balanceValue}>¥{formatBalance(primary.totalBalance)}</span>
-                </div>
-                <div className={css.balanceRow}>
-                  <span className={css.balanceLabel}>{t('card.grantedBalance')}</span>
-                  <span className={css.balanceValue}>¥{formatBalance(primary.grantedBalance)}</span>
-                </div>
-                <div className={css.balanceRow}>
-                  <span className={css.balanceLabel}>{t('card.toppedUpBalance')}</span>
-                  <span className={css.balanceValue}>¥{formatBalance(primary.toppedUpBalance)}</span>
-                </div>
-                <div className={css.currency}>{primary.currency}</div>
-              </>
-            )}
-
-            {view?.ok && primary === null && (
-              <div className={css.empty}>{t('card.empty')}</div>
-            )}
-
-            <div className={css.footer}>
-              <button
-                type="button"
-                className={css.refresh}
-                onClick={() => { void refresh() }}
-                disabled={loading}
-              >
-                {loading ? t('card.loading') : t('card.refresh')}
-              </button>
-            </div>
+        <div className={css.card}>
+          <div className={css.cardHead}>
+            <span className={css.cardTitle}>{t('card.title')}</span>
+            <span className={css.band} data-tone={tone}>{statusLabel}</span>
+            <button type="button" className={css.iconButton} aria-label={t('card.close')} onClick={() => setExpanded(false)}>
+              ✕
+            </button>
           </div>
-        </>
+
+          {primary != null && (
+            <>
+              <div className={css.balanceTotal}>
+                <span className={css.balanceTotalLabel}>{t('card.totalBalance')}</span>
+                <span className={css.balanceTotalValue}>{formatYuan(primary.totalBalance)}</span>
+              </div>
+              <div className={css.row}><span>{t('card.grantedBalance')}</span><span>{formatYuan(primary.grantedBalance)}</span></div>
+              <div className={css.row}><span>{t('card.toppedUpBalance')}</span><span>{formatYuan(primary.toppedUpBalance)}</span></div>
+              <div className={css.row}><span>{t('card.currency')}</span><span>{primary.currency}</span></div>
+            </>
+          )}
+          {view?.ok && primary === null && (
+            <div className={css.empty}>{t('card.empty')}</div>
+          )}
+
+          <button
+            type="button"
+            className={css.resetButton}
+            disabled={loading}
+            onClick={() => { void refresh() }}
+          >
+            {loading ? t('card.loading') : t('card.refresh')}
+          </button>
+        </div>
       )}
+
+      <button
+        type="button"
+        className={css.capsule}
+        title={t('capsule.title')}
+        aria-label={t('capsule.label')}
+        aria-expanded={expanded}
+        onClick={() => setExpanded((value) => !value)}
+      >
+        <span className={css.bandTag} data-tone={tone}>{statusLabel}</span>
+        {loading && <span className={css.spin} />}
+        <span className={css.text}>{primary ? formatYuan(primary.totalBalance) : '—'}</span>
+      </button>
     </div>
   )
 }

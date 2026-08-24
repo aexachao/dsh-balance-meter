@@ -17,6 +17,11 @@ test('client bundle is a closure factory with the plugin id', () => {
   assert.match(code, /id: "ds-budget-meter"/)
 })
 
+test('client bundle reads from the host /budget/balance endpoint', () => {
+  const code = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
+  assert.match(code, /budget\/balance/)
+})
+
 test('client bundle materializes apply/inject with the required services', () => {
   const require = createRequire(import.meta.url)
   const code = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
