@@ -186,17 +186,22 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
             </div>
           )}
 
-          {/* 消费统计：今日来自官方平台/余额差值估算，累计仅官方源有值。 */}
-          <div className={css.row}>
-            <span>{t('card.spent')}</span>
-            <span>
-              {view?.todayConsumed !== undefined
-                ? `${view.todayConsumedSource === 'estimate' ? '≈' : ''}${formatYuan(view.todayConsumed)}`
-                : '—'}
-            </span>
-          </div>
-          {view?.totalConsumed !== undefined && (
-            <div className={css.row}><span>{t('card.totalAll')}</span><span>{formatYuan(view.totalConsumed)}</span></div>
+          {/* 消费统计：今日来自官方平台/余额差值估算，累计仅官方源有值；
+              无任何消费数据时整块（含底部分割线）隐藏。 */}
+          {(view?.todayConsumed !== undefined || view?.totalConsumed !== undefined) && (
+            <div className={css.spendStats}>
+              <div className={css.row}>
+                <span>{t('card.spent')}</span>
+                <span>
+                  {view?.todayConsumed !== undefined
+                    ? `${view.todayConsumedSource === 'estimate' ? '≈' : ''}${formatYuan(view.todayConsumed)}`
+                    : '—'}
+                </span>
+              </div>
+              {view?.totalConsumed !== undefined && (
+                <div className={css.row}><span>{t('card.totalAll')}</span><span>{formatYuan(view.totalConsumed)}</span></div>
+              )}
+            </div>
           )}
 
           <div className={css.section}>{t('card.tokens.title')}</div>

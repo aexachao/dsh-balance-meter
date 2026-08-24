@@ -190,6 +190,15 @@
   background: var(--dsw-alias-interactive-bg-hover, #33363e);
 }
 
+/* 消费统计块：今日已花费 + 累计（含往期），与下方 tokens 之间用分割线隔开。 */
+.spendStats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1, #27272a);
+}
+
 .row {
   display: flex;
   justify-content: space-between;
