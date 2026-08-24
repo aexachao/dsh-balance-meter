@@ -152,24 +152,43 @@ peakWindows: '09:00-12:00,14:00-18:00'   # 高峰窗口，北京时间，逗号�
 pricingTimezone: Asia/Shanghai
 ```
 
+### 凭证（`~/.dsh/.credentials.yaml`）
+
+```yaml
+DEEPSEEK_API_KEY: sk-xxx            # 必需：余额查询
+DEEPSEEK_PLATFORM_TOKEN: xxx        # 可选：官方累计/今日消费（platform.deepseek.com 登录态的 userToken）
+```
+
+`DEEPSEEK_PLATFORM_TOKEN` 获取方式：登录 platform.deepseek.com → 打开
+浏览器开发者工具 → Application / Local Storage → 复制 `userToken` 的值。
+不配置时「今日已花费」退化为余额差值估算（前缀 ≈），「累计（含往期）」隐藏。
+
 ## 工作原理
 
 - **余额数据源**：client 胶囊向 host 的 `GET /budget/balance` 发起请求；host 读取
   `~/.dsh/.credentials.yaml` 中的 `DEEPSEEK_API_KEY`，以
   `Authorization: Bearer <key>` 调用 DeepSeek 官方余额接口（10 秒超时），
   把响应里的 `balance_infos`（snake_case）映射为胶囊可用的 camelCase 结构；
-- **安全**：余额路由用 `webServer.register` 注册为 exact 路径；非回环地址一律
-  403；API key 不经过任何前端代码；错误信息不包含 key；
-- **用量数据源**：client 订阅当前会话的 conversation 快照，对每条 finalized
-  assistant 消息的 `usage` 计费（wire 形状
+- **消费数据源（官方优先）**：配置 `DEEPSEEK_PLATFORM_TOKEN` 时，host 调用
+  DeepSeek 平台用量接口（`platform.deepseek.com/api/v0/usage/cost`，与官网
+  用量页同源），从当前月往前逐月拉取全历史消费 ——「今日已花费」取当天行，
+  「累计（含往期）」为全部月份之和；结果当日缓存到
+  `~/.dsh/storages/ds-budget-meter-consumed.json`（token 过期等失败不阻塞
+  余额展示）；
+- **消费数据源（估算兜底）**：无 platform token 时，host 把当天零点余额
+  持久化到 `~/.dsh/storages/ds-budget-meter-day.json`，「今日已花费」=
+  `max(0, 当天零点余额 − 当前余额)`，前缀 ≈ 标注为估算；
+- **用量数据源（细粒度）**：client 订阅当前会话的 conversation 快照，对每条
+  finalized assistant 消息的 `usage` 计费（wire 形状
   `{ inputTokens, outputTokens, cacheReadTokens, reasoningTokens }`，OpenAI 式
   形状作 fallback），按模型名与当前峰谷时段查价，账本按
-  `sessionId:messageId|seq` 去重并持久化 localStorage——重开会话、重启应用
-  不重复计费；统计固定按天（自然日零点归零），累计（含往期）始终可见；
+  `sessionId:messageId|seq` 去重并持久化 localStorage——「今日 tokens」与
+  「按模型」分项即来源于此；
 - **提醒与停止**：今日花费 ≥ `warnYuan` 时弹 8 秒 toast（每周期一次）；
   `stopOnOver` 开启时同时取消当前回合，防止继续消耗；
 - **充值跳转**：卡片「去充值」按钮为外链
   （`https://platform.deepseek.com/top_up`），由桌面端桥接在系统浏览器打开；
+- **交互**：点击胶囊展开卡片，点击空白处或关闭按钮收起；
 - **client 注入**：`slots` + `sessions` + `locale` 三个服务；胶囊注册进布局的
   `shell.overlay` 列表槽位（右下角固定）；卸载时随 effect 自动回收。
 
@@ -183,9 +202,13 @@ pnpm test        # 构建后跑 node --test 单元测试（host 端点 / pricing
 
 ## 边界与限制
 
-- 余额展示的是 **DeepSeek 账户余额**（总 / 赠送 / 充值）；花费统计为**本客户端
-  打开 / staged 过的会话**消耗（框架无跨会话 usage 聚合面），账本持久化保证
-  打开过的会话不重不漏、重启不丢；
+- 余额与消费统计展示的是 **DeepSeek 账户官方数据**（余额 / 今日消费 / 累计
+  消费）；「今日 tokens」与「按模型」为**本客户端打开 / staged 过的会话**
+  消耗（框架无跨会话 usage 聚合面），账本持久化保证打开过的会话不重不漏、
+  重启不丢；
+- 「今日已花费」无 platform token 时为余额差值估算（≈），不反映官网账单的
+  精确值；有 token 时官方平台接口可能随官网改版而失效，token 过期需重新
+  登录复制 userToken；
 - 历史回放节点不带模型身份时按 flash 价计（宁晚提醒不早报）；中断未 finalize
   的请求没有 usage，不计费（保守少计）；缓存命中数缺失时按 0 命中、全部输入
   走未命中价（保守高估）；

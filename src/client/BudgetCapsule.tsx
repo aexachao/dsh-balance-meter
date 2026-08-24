@@ -13,8 +13,7 @@ import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots
 import { aggregateSince, periodStartMs } from './ledger.ts'
 import { isPeak, parsePeakWindows } from './pricing.ts'
 import {
-  clearNotified, getSettings, ledger, markNotified, subscribeSettings, updateSettings,
-  wasNotified,
+  getSettings, ledger, markNotified, subscribeSettings, updateSettings, wasNotified,
 } from './store.ts'
 import css from './BudgetCapsule.module.css'
 
@@ -35,6 +34,12 @@ interface BalanceView {
   error?: string
   isAvailable?: boolean
   balanceInfos?: BalanceInfo[]
+  /** 今日已消费（元）：官方平台源或余额差值估算。 */
+  todayConsumed?: number
+  todayConsumedSource?: 'official' | 'estimate'
+  /** 累计消费（元，全部历史；仅官方平台源可用）。 */
+  totalConsumed?: number
+  totalConsumedSource?: 'official'
 }
 
 function formatYuan(value: number): string {
@@ -98,7 +103,6 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
   const now = Date.now()
   const start = periodStartMs('daily', now)
   const totals = aggregateSince(ledger.all(), start)
-  const totalAllCost = aggregateSince(ledger.all(), 0).cost
   const periodKey = `daily:${start}`
 
   // 达到金额阈值：每周期弹一次 8 秒 toast（提醒 + 停止均由 toast 表述）。
@@ -144,10 +148,14 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
       )}
 
       {expanded && (
-        <div className={css.card}>
+        <>
+          {/* 点击空白处关闭卡片。 */}
+          <div className={css.backdrop} onClick={() => setExpanded(false)} />
+          <div className={css.card}>
           <div className={css.cardHead}>
             <span className={css.cardTitle}>{t('card.title')}</span>
             <span className={css.band} data-peak={peakNow || undefined}>
+              <span className={css.bandDot} data-peak={peakNow || undefined} />
               {`${t('card.peakNow')}: ${peakNow ? t('card.peak') : t('card.off')}`}
             </span>
             <button type="button" className={css.iconButton} aria-label={t('card.close')} onClick={() => setExpanded(false)}>
@@ -176,8 +184,18 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
             </div>
           )}
 
-          <div className={css.row}><span>{t('card.spent')}</span><span>{formatYuan(totals.cost)}</span></div>
-          <div className={css.row}><span>{t('card.totalAll')}</span><span>{formatYuan(totalAllCost)}</span></div>
+          {/* 消费统计：今日来自官方平台/余额差值估算，累计仅官方源有值。 */}
+          <div className={css.row}>
+            <span>{t('card.spent')}</span>
+            <span>
+              {view?.todayConsumed !== undefined
+                ? `${view.todayConsumedSource === 'estimate' ? '≈' : ''}${formatYuan(view.todayConsumed)}`
+                : '—'}
+            </span>
+          </div>
+          {view?.totalConsumed !== undefined && (
+            <div className={css.row}><span>{t('card.totalAll')}</span><span>{formatYuan(view.totalConsumed)}</span></div>
+          )}
 
           <div className={css.section}>{t('card.tokens.title')}</div>
           <div className={css.row}><span>{t('card.tokens.inputCached')}</span><span>{formatTokens(totals.cachedIn)}</span></div>
@@ -221,14 +239,8 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
               onChange={(event) => updateSettings({ stopOnOver: event.target.checked })}
             />
           </label>
-          <button
-            type="button"
-            className={css.resetButton}
-            onClick={() => { ledger.resetSince(start); clearNotified(periodKey) }}
-          >
-            {t('card.reset')}
-          </button>
-        </div>
+          </div>
+        </>
       )}
 
       <button
@@ -240,6 +252,7 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
         onClick={() => setExpanded((value) => !value)}
       >
         <span className={css.bandTag} data-peak={peakNow || undefined}>
+          <span className={css.bandDot} data-peak={peakNow || undefined} />
           {peakNow ? t('card.peak') : t('card.off')}
         </span>
         {loading && <span className={css.spin} />}

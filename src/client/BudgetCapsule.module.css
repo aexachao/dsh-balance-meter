@@ -19,7 +19,7 @@
   z-index: 80;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: flex-end;
   gap: 8px;
   pointer-events: auto;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -43,6 +43,9 @@
 
 .bandTag {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 10px;
@@ -53,6 +56,18 @@
 
 .bandTag[data-peak] {
   color: #f59e0b;
+}
+
+.bandDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--dsw-alias-state-success-primary, #34d399);
+}
+
+.bandDot[data-peak] {
+  background: #f59e0b;
 }
 
 .text {
@@ -76,7 +91,16 @@
   to { transform: rotate(360deg); }
 }
 
+/* 点击空白处关闭卡片的透明遮罩：盖住页面但低于卡片。 */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+}
+
 .card {
+  position: relative;
+  z-index: 100;
   width: 268px;
   display: flex;
   flex-direction: column;
@@ -101,6 +125,9 @@
 }
 
 .band {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 11px;
   color: var(--dsw-alias-label-secondary, #a1a1aa);
 }
@@ -203,16 +230,6 @@
   background: var(--dsw-alias-bg-layer-2, #262b36);
   color: var(--dsw-alias-label-primary, #e5e7eb);
   font-size: 12px;
-}
-
-.resetButton {
-  margin-top: 4px;
-  padding: 5px 8px;
-  border-radius: 8px;
-  border: 1px solid var(--dsw-alias-border-l1, #27272a);
-  background: var(--dsw-alias-bg-layer-2, #262b36);
-  color: var(--dsw-alias-label-primary, #e5e7eb);
-  cursor: pointer;
 }
 
 .toast {
