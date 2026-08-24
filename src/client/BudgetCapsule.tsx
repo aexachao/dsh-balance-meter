@@ -244,6 +244,7 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
             />
           </label>
           </div>
+          </div>
         </>
       )}
 
