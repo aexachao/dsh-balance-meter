@@ -155,13 +155,14 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
           <div className={css.card}>
           <div className={css.cardHead}>
             <span className={css.cardTitle}>{t('card.title')}</span>
-            <span className={css.band} data-peak={peakNow || undefined}>
-              <span className={css.bandDot} data-peak={peakNow || undefined} />
-              {`${t('card.peakNow')}: ${peakNow ? t('card.peak') : t('card.off')}`}
+            {/* 状态圆点跟随「高峰/空闲」字段，而非整行最左。 */}
+            <span className={css.band}>
+              {`${t('card.peakNow')}: `}
+              <span className={css.bandLabel} data-peak={peakNow || undefined}>
+                <span className={css.bandDot} data-peak={peakNow || undefined} />
+                {peakNow ? t('card.peak') : t('card.off')}
+              </span>
             </span>
-            <button type="button" className={css.iconButton} aria-label={t('card.close')} onClick={() => setExpanded(false)}>
-              ✕
-            </button>
           </div>
 
           {/* 余额区块：总余额大字 + 赠送/充值分项 + 充值快捷跳转。 */}
@@ -217,6 +218,8 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
             </>
           )}
 
+          {/* 设置区：与上方统计数据之间加分割线。 */}
+          <div className={css.settingsBlock}>
           <div className={css.section}>{t('settings.title')}</div>
           <label className={css.field}>
             <span>{t('settings.warn')}</span>

@@ -24,7 +24,6 @@ export const zh = {
   'settings.title': '设置',
   'settings.warn': '花费提醒阈值（元）',
   'settings.stopOnOver': '达到阈值自动停止回合',
-  'card.close': '收起',
   'toast.warn': '今日已花费 {spent}，达到提醒阈值 {warn}',
   'toast.close': '关闭',
 } satisfies Record<string, string>
@@ -56,7 +55,6 @@ export const en = {
   'settings.title': 'Settings',
   'settings.warn': 'Spend alert threshold (CNY)',
   'settings.stopOnOver': 'Auto-stop turn at threshold',
-  'card.close': 'Collapse',
   'toast.warn': 'Spent {spent} today — alert threshold {warn} reached',
   'toast.close': 'Dismiss',
 } satisfies Record<BudgetKey, string>

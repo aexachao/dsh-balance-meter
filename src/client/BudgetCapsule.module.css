@@ -129,12 +129,18 @@
 .band {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
   font-size: 11px;
   color: var(--dsw-alias-label-secondary, #a1a1aa);
 }
 
-.band[data-peak] {
+.bandLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+}
+
+.bandLabel[data-peak] {
   color: #f59e0b;
 }
 
@@ -213,6 +219,13 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--dsw-alias-label-secondary, #a1a1aa);
+}
+
+/* 设置区与上方统计数据之间的分割线。 */
+.settingsBlock {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--dsw-alias-border-l1, #27272a);
 }
 
 .field {

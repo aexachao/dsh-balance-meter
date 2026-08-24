@@ -23,7 +23,6 @@ export declare const zh: {
     'settings.title': string;
     'settings.warn': string;
     'settings.stopOnOver': string;
-    'card.close': string;
     'toast.warn': string;
     'toast.close': string;
 };
@@ -53,7 +52,6 @@ export declare const en: {
     'settings.title': string;
     'settings.warn': string;
     'settings.stopOnOver': string;
-    'card.close': string;
     'toast.warn': string;
     'toast.close': string;
 };
