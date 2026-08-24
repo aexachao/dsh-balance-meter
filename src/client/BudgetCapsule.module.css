@@ -25,7 +25,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   height: 32px;
   padding: 6px 12px;
   border: 1px solid var(--dsw-alias-border-l2);
@@ -71,6 +71,7 @@
 
 .text {
   flex: none;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   font-weight: 500;
   color: var(--dsw-alias-label-primary);
