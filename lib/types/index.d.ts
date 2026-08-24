@@ -8,6 +8,7 @@
  */
 import type { Context } from '@deepseek-ai/cordis';
 import z from '@deepseek-ai/schemastery';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 export declare const name = "ds-budget-meter";
 export interface Config {
     /** Reserved for future use; the card refreshes on demand + every 60s. */
@@ -33,5 +34,12 @@ export declare function parseApiKey(text: string): string | null;
 export declare function isLoopbackAddress(addr: string): boolean;
 /** DeepSeek API 响应（snake_case）→ BalanceView（camelCase）。 */
 export declare function mapBalanceResponse(data: unknown): BalanceView;
+/** 余额端点的外部依赖（默认实现见 apply；测试时注入 mock）。 */
+export interface BalanceDeps {
+    readKey: () => string | null;
+    fetchUpstream: (key: string) => Promise<Response>;
+}
+/** 构造 /budget/balance 处理器；依赖可注入以便单元测试完整 HTTP 契约。 */
+export declare function createBalanceHandler(deps: BalanceDeps): (req: IncomingMessage, res: ServerResponse) => Promise<void>;
 export declare const inject: string[];
 export declare function apply(ctx: Context, _config: Config): void;

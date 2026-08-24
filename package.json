@@ -57,7 +57,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.client.json && tsdown",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json --noEmit",
-    "verify": "node scripts/verify.mjs",
+    "test": "pnpm build && node --test \"test/*.test.mjs\"",
     "release": "bash scripts/publish.sh"
   },
   "peerDependencies": {

@@ -152,7 +152,7 @@ refreshSeconds: 0    # 预留：后续版本支持自定义自动刷新间隔（
 ```sh
 pnpm typecheck   # 双 program（host + client）
 pnpm build       # tsc host → tsc client → tsdown
-pnpm verify      # 离线冒烟：key 解析 / 回环门禁 / 响应映射 / bundle 执行
+pnpm test        # 构建后跑 node --test 单元测试（host 端点契约 + client bundle）
 ```
 
 ## 边界与限制

@@ -105,10 +105,15 @@ function writeJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(text)
 }
 
-export const inject = ['webServer']
+/** 余额端点的外部依赖（默认实现见 apply；测试时注入 mock）。 */
+export interface BalanceDeps {
+  readKey: () => string | null
+  fetchUpstream: (key: string) => Promise<Response>
+}
 
-export function apply(ctx: Context, _config: Config): void {
-  const handler = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+/** 构造 /budget/balance 处理器；依赖可注入以便单元测试完整 HTTP 契约。 */
+export function createBalanceHandler(deps: BalanceDeps) {
+  return async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     if (req.method !== 'GET') {
       res.writeHead(405); res.end(); return
     }
@@ -117,7 +122,7 @@ export function apply(ctx: Context, _config: Config): void {
       return
     }
 
-    const key = readApiKey()
+    const key = deps.readKey()
     if (!key) {
       writeJson(res, 500, {
         ok: false,
@@ -127,10 +132,7 @@ export function apply(ctx: Context, _config: Config): void {
     }
 
     try {
-      const r = await fetch(BALANCE_ENDPOINT, {
-        headers: { Authorization: `Bearer ${key}` },
-        signal: AbortSignal.timeout(10_000),
-      })
+      const r = await deps.fetchUpstream(key)
       if (!r.ok) {
         writeJson(res, 502, { ok: false, error: `DeepSeek API ${r.status}` } as BalanceView)
         return
@@ -144,6 +146,18 @@ export function apply(ctx: Context, _config: Config): void {
       } as BalanceView)
     }
   }
+}
+
+export const inject = ['webServer']
+
+export function apply(ctx: Context, _config: Config): void {
+  const handler = createBalanceHandler({
+    readKey: readApiKey,
+    fetchUpstream: (key) => fetch(BALANCE_ENDPOINT, {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(10_000),
+    }),
+  })
 
   const dispose = ctx.webServer.register({
     kind: 'exact',
