@@ -19,17 +19,28 @@
   color: var(--dsw-alias-label-primary, #e5e7eb);
 }
 
+/* 胶囊：与 session log 按钮同款 secondaryButton 视觉
+   （1px border-l2 描边、透明底、18px 圆角、hover 浅底、无阴影）。 */
 .capsule {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
   padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--dsw-alias-bg-layer-1, #171a21);
-  border: 1px solid var(--dsw-alias-border-l1, #27272a);
-  color: inherit;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 18px;
+  background: 0 0;
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsw-font-family);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.3);
+}
+
+.capsule:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 
 .bandTag {
@@ -37,12 +48,9 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 10px;
-  line-height: 1.4;
-  color: var(--dsw-alias-label-secondary, #a1a1aa);
-  background: var(--dsw-alias-bg-layer-2, #262b36);
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
 }
 
 .bandTag[data-peak] {
@@ -62,10 +70,11 @@
 }
 
 .text {
+  flex: none;
   font-variant-numeric: tabular-nums;
-  color: var(--dsw-alias-label-secondary, #a1a1aa);
-  min-width: 44px;
-  text-align: right;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+  white-space: nowrap;
 }
 
 .spin {
