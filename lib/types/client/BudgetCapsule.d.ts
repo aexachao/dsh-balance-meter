@@ -1,5 +1,6 @@
 /**
- * The floating budget capsule (shell.overlay entry).
+ * 余额胶囊（conversation.session.header.utilities 条目，session log 按钮
+ * 左侧）。
  *
  * 原版预算追踪的融合改造：保留高峰/空闲时段标签、本日 token 分项、按模型
  * 花费、按金额的花费提醒阈值与超额自动停止；删除原版的「额度 / 周期 /
