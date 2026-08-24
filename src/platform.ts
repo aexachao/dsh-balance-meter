@@ -143,6 +143,12 @@ export function advanceDayMeter(
 const PLATFORM_USAGE_URL = 'https://platform.deepseek.com/api/v0/usage/cost'
 const TIMEOUT_MS = 15_000
 
+/**
+ * 平台 WAF 按浏览器 User-Agent 放行（实测：缺 UA 返回 Request Blocked，
+ * 带浏览器 UA 即可通过，Cookie 非必需）。
+ */
+const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36'
+
 /** 拉取平台某月费用列表；信封错误/HTTP 失败抛错，空月返回 null。 */
 export async function fetchPlatformMonth(token: string, month: number, year: number): Promise<PlatformDay[] | null> {
   const url = `${PLATFORM_USAGE_URL}?month=${month}&year=${year}`
@@ -151,6 +157,7 @@ export async function fetchPlatformMonth(token: string, month: number, year: num
       Authorization: `Bearer ${token}`,
       Accept: 'application/json',
       'x-app-version': '1.0.0',
+      'User-Agent': BROWSER_UA,
       Origin: 'https://platform.deepseek.com',
       Referer: 'https://platform.deepseek.com/usage',
     },
@@ -165,5 +172,5 @@ export async function fetchPlatformMonth(token: string, month: number, year: num
     }
     throw new Error(`DeepSeek 平台用量接口错误 (code ${code ?? 'unknown'})`)
   }
-  return parsePlatformDays(body.data.biz_data)
+  return parsePlatformDays(body)
 }

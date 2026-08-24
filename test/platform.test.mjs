@@ -8,6 +8,7 @@ import assert from 'node:assert/strict'
 
 import {
   parseCredential, localDate, parsePlatformDays, aggregatePlatformConsumption, advanceDayMeter,
+  fetchPlatformMonth,
 } from '../lib/platform.js'
 
 // ── parseCredential ─────────────────────────────────────────────────────────
@@ -60,6 +61,37 @@ test('parsePlatformDays tolerates wrapper arrays and missing rows', () => {
 test('parsePlatformDays rejects non-zero envelope codes', () => {
   const bad = { code: 0, data: { biz_code: 40002, biz_data: { days: [] } } }
   assert.equal(parsePlatformDays(bad), null)
+})
+
+// ── fetchPlatformMonth (transport + envelope + parse, mocked fetch) ─────────
+test('fetchPlatformMonth parses a real envelope end-to-end', async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async () => new Response(JSON.stringify(sampleEnvelope), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  })
+  try {
+    const days = await fetchPlatformMonth('tk', 8, 2026)
+    assert.deepEqual(days, [
+      { date: '2026-08-20', cost: 2 },
+      { date: '2026-08-21', cost: 3 },
+    ])
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('fetchPlatformMonth throws on session-expired envelope codes', async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    code: null,
+    data: { biz_code: 40002, biz_data: {} },
+  }), { status: 200 })
+  try {
+    await assert.rejects(fetchPlatformMonth('tk', 8, 2026), /已过期/)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 })
 
 // ── aggregatePlatformConsumption ────────────────────────────────────────────
