@@ -24,9 +24,14 @@ export const DEFAULT_SETTINGS: Settings = {
   pricingTimezone: 'Asia/Shanghai',
 }
 
-const SETTINGS_KEY = 'ds-budget-meter/v1/settings'
-const LEDGER_KEY = 'ds-budget-meter/v1/ledger'
-const NOTIFIED_KEY = 'ds-budget-meter/v1/notified'
+const SETTINGS_KEY = 'dsh-balance-tracker/v1/settings'
+const LEDGER_KEY = 'dsh-balance-tracker/v1/ledger'
+const NOTIFIED_KEY = 'dsh-balance-tracker/v1/notified'
+
+// 旧插件名（ds-budget-meter）下的键：读时回退，写入时迁移到新键。
+const LEGACY_SETTINGS_KEY = 'ds-budget-meter/v1/settings'
+const LEGACY_LEDGER_KEY = 'ds-budget-meter/v1/ledger'
+const LEGACY_NOTIFIED_KEY = 'ds-budget-meter/v1/notified'
 
 function readJson(key: string): unknown {
   try {
@@ -35,6 +40,15 @@ function readJson(key: string): unknown {
   } catch {
     return null
   }
+}
+
+/** Read from the primary key, falling back to (and migrating) the legacy key. */
+function readJsonWithLegacy(key: string, legacyKey: string): unknown {
+  const value = readJson(key)
+  if (value !== null) return value
+  const legacy = readJson(legacyKey)
+  if (legacy !== null) writeJson(key, legacy)
+  return legacy
 }
 
 function writeJson(key: string, value: unknown): void {
@@ -47,7 +61,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function loadSettings(): Settings {
   const settings = { ...DEFAULT_SETTINGS }
-  const stored = readJson(SETTINGS_KEY)
+  const stored = readJsonWithLegacy(SETTINGS_KEY, LEGACY_SETTINGS_KEY)
   if (isRecord(stored)) mergeSettings(settings, stored)
   return settings
 }
@@ -101,7 +115,7 @@ function notifySettings(): void {
 // ── ledger singleton ────────────────────────────────────────────────────────
 
 export const ledger = new LedgerStore(
-  () => parseLedgerPayload(readJson(LEDGER_KEY)),
+  () => parseLedgerPayload(readJsonWithLegacy(LEDGER_KEY, LEGACY_LEDGER_KEY)),
   (records) => writeJson(LEDGER_KEY, records),
 )
 
@@ -114,7 +128,7 @@ interface NotifiedMap {
 }
 
 function readNotified(): NotifiedMap {
-  const stored = readJson(NOTIFIED_KEY)
+  const stored = readJsonWithLegacy(NOTIFIED_KEY, LEGACY_NOTIFIED_KEY)
   return isRecord(stored) ? stored as NotifiedMap : {}
 }
 

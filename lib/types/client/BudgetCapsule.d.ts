@@ -9,6 +9,6 @@
  * 充值快捷跳转。
  */
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
-type BudgetCapsuleProps = PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<'ds-budget-meter'>;
+type BudgetCapsuleProps = PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<'dsh-balance-tracker'>;
 export declare function BudgetCapsule({ t }: BudgetCapsuleProps): import("react").JSX.Element;
 export {};

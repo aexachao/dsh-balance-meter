@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Publishes ds-budget-meter to the npm registry as the authenticated user.
+# Publishes dsh-balance-tracker to the npm registry as the authenticated user.
 #
 # Usage:
 #   NPM_TOKEN=<your npmjs access token> ./scripts/publish.sh        # bump patch if needed

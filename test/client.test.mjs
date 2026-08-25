@@ -14,7 +14,7 @@ import { join } from 'node:path'
 test('client bundle is a closure factory with the plugin id', () => {
   const code = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
   assert.match(code, /window\.__ModuleLoader__\.load\(\{/)
-  assert.match(code, /id: "ds-budget-meter"/)
+  assert.match(code, /id: "dsh-balance-tracker"/)
 })
 
 test('client bundle reads from the host /budget/balance endpoint', () => {
@@ -45,7 +45,7 @@ test('client bundle materializes apply/inject with the required services', () =>
   globalThis.window = { __ModuleLoader__: { load(entry) { loaded = entry } } }
   try {
     require(bundlePath)
-    assert.equal(loaded?.id, 'ds-budget-meter')
+    assert.equal(loaded?.id, 'dsh-balance-tracker')
     const exports = loaded.factory(require)
     assert.equal(typeof exports.apply, 'function')
     assert.deepEqual(exports.inject, ['slots', 'sessions', 'locale'])

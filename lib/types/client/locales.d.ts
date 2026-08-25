@@ -1,4 +1,4 @@
-/** `ds-budget-meter` namespace dictionaries: capsule, card, settings, toasts. */
+/** `dsh-balance-tracker` namespace dictionaries: capsule, card, settings, toasts. */
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export declare const zh: {
     'capsule.label': string;
@@ -28,7 +28,7 @@ export declare const zh: {
     'toast.warn': string;
     'toast.close': string;
 };
-/** The ds-budget-meter namespace key union. */
+/** The dsh-balance-tracker namespace key union. */
 export type BudgetKey = keyof typeof zh;
 /** English dictionary, checked complete against the zh key set. */
 export declare const en: {

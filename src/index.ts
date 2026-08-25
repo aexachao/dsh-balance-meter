@@ -1,5 +1,5 @@
 /**
- * ds-budget-meter host half: 预算配置 + 真实 DeepSeek 账户余额端点。
+ * dsh-balance-tracker host half: 预算配置 + 真实 DeepSeek 账户余额端点。
  *
  * 原版（token 用量估算）的预算配置字段原样保留，另加余额查询：
  * 读取 `~/.dsh/.credentials.yaml`（DEEPSEEK_API_KEY）并调用官方余额
@@ -19,7 +19,7 @@ import {
   parseCredential, type DayMeterState, type PlatformDay,
 } from './platform.ts'
 
-export const name = 'ds-budget-meter'
+export const name = 'dsh-balance-tracker'
 
 export interface Config {
   /** 本日花费达到该金额（元）时提醒；stopOnOver 时同时取消当前回合。 */
@@ -279,5 +279,5 @@ export function apply(ctx: Context, _config: Config): void {
     path: '/budget/balance',
     handler,
   })
-  ctx.effect(() => dispose, 'ds-budget-meter: balance route')
+  ctx.effect(() => dispose, 'dsh-balance-tracker: balance route')
 }

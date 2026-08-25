@@ -1,5 +1,5 @@
 /**
- * tsdown config for the ds-budget-meter client bundle.
+ * tsdown config for the dsh-balance-tracker client bundle.
  *
  * Replicates the harness's shared client bundle preset
  * (packages/client/tsdown.client.ts clientConfig): a CJS closure-factory
@@ -50,7 +50,7 @@ const GENERATED_REMOTE = /^@deepseek-ai\/dsh-[a-z0-9]+(?:-[a-z0-9]+)*\/remote$/
 const CSS_VIRTUAL_PREFIX = '\0dsh-css:'
 const CSS_VIRTUAL_SUFFIX = '.mjs'
 
-const PLUGIN_ID = 'ds-budget-meter'
+const PLUGIN_ID = 'dsh-balance-tracker'
 
 /** Resolve an emitted JS asset import against its source-tree counterpart. */
 function sourceAssetPath(source: string, importer: string): string {
