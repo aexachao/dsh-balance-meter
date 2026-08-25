@@ -43,11 +43,14 @@ interface BalanceView {
   totalConsumedSource?: 'official'
 }
 
+/** 金额统一向下截断到分（两位小数），避免 toFixed 的四舍五入。 */
+function truncateToCents(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  return Math.trunc(value * 100) / 100
+}
+
 function formatYuan(value: number): string {
-  if (value >= 100) return `¥${value.toFixed(0)}`
-  if (value >= 1) return `¥${value.toFixed(2)}`
-  if (value > 0) return `¥${value.toFixed(3)}`
-  return '¥0.00'
+  return `¥${truncateToCents(value).toFixed(2)}`
 }
 
 /** 余额接口返回的是字符串金额，格式化同 formatYuan。 */
@@ -171,6 +174,16 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
               <div className={css.balanceTotal}>
                 <span className={css.balanceTotalLabel}>{t('card.totalBalance')}</span>
                 <span className={css.balanceTotalValue}>{formatYuanText(balance.totalBalance)}</span>
+                <button
+                  type="button"
+                  className={css.refreshButton}
+                  aria-label={t('card.refresh')}
+                  title={t('card.refreshTitle')}
+                  disabled={loading}
+                  onClick={() => { void refresh() }}
+                >
+                  ↻
+                </button>
                 <a
                   className={css.topUp}
                   href={TOP_UP_URL}

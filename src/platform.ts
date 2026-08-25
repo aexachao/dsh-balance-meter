@@ -27,6 +27,12 @@ export function localDate(d = new Date()): string {
   return `${y}-${m}-${day}`
 }
 
+/** 金额向下截断到分（两位小数），避免金额显示时被四舍五入。 */
+function truncateToCents(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  return Math.trunc(value * 100) / 100
+}
+
 /** Coerce a possibly-string number to a finite number, or NaN. */
 function toFinite(value: unknown): number {
   if (typeof value === 'number') return Number.isFinite(value) ? value : NaN
@@ -75,7 +81,7 @@ export function parsePlatformDays(body: unknown): PlatformDay[] | null {
         if (Number.isFinite(value)) total += value
       }
     }
-    out.push({ date, cost: Math.round(total * 100) / 100 })
+    out.push({ date, cost: truncateToCents(total) })
   }
   return out.length > 0 ? out : null
 }
@@ -110,7 +116,7 @@ export async function aggregatePlatformConsumption(
     }
   }
   if (!seenAny) return null
-  return { total: Math.round(total * 100) / 100, today: todayValue ?? 0 }
+  return { total: truncateToCents(total), today: todayValue ?? 0 }
 }
 
 /** 日余额计量状态：当天零点余额与最近观察值。 */
@@ -134,7 +140,7 @@ export function advanceDayMeter(
     return { state: state ?? { date: today, opening: NaN, last: NaN }, consumed: null }
   }
   const opening = state === null ? balance : state.date === today ? state.opening : state.last
-  const consumed = Math.max(0, Math.round((opening - balance) * 100) / 100)
+  const consumed = Math.max(0, truncateToCents(opening - balance))
   return { state: { date: today, opening, last: balance }, consumed }
 }
 

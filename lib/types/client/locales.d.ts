@@ -19,6 +19,8 @@ export declare const zh: {
     'card.toppedUpBalance': string;
     'card.topUp': string;
     'card.topUpTitle': string;
+    'card.refresh': string;
+    'card.refreshTitle': string;
     'card.balanceError': string;
     'settings.title': string;
     'settings.warn': string;
@@ -48,6 +50,8 @@ export declare const en: {
     'card.toppedUpBalance': string;
     'card.topUp': string;
     'card.topUpTitle': string;
+    'card.refresh': string;
+    'card.refreshTitle': string;
     'card.balanceError': string;
     'settings.title': string;
     'settings.warn': string;

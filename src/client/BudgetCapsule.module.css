@@ -186,6 +186,34 @@
   cursor: pointer;
 }
 
+/* 余额金额右侧的手动刷新按钮。 */
+.refreshButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--dsw-alias-border-l2, #3f3f46);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-2, #262b36);
+  color: var(--dsw-alias-label-secondary, #a1a1aa);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.refreshButton:hover:not(:disabled) {
+  color: var(--dsw-alias-label-primary, #e5e7eb);
+  background: var(--dsw-alias-interactive-bg-hover, #33363e);
+}
+
+.refreshButton:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .topUp:hover {
   background: var(--dsw-alias-interactive-bg-hover, #33363e);
 }

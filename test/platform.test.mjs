@@ -49,6 +49,21 @@ test('parsePlatformDays sums per-day usage costs', () => {
   ])
 })
 
+test('parsePlatformDays truncates day costs instead of rounding', () => {
+  const env = {
+    code: 0,
+    data: {
+      biz_code: 0,
+      biz_data: {
+        days: [
+          { date: '2026-08-20', data: [{ usage: [{ cost: '1.999' }] }] },
+        ],
+      },
+    },
+  }
+  assert.equal(parsePlatformDays(env)?.[0].cost, 1.99)
+})
+
 test('parsePlatformDays tolerates wrapper arrays and missing rows', () => {
   const wrapped = { code: 0, data: { biz_code: 0, biz_data: [sampleEnvelope.data.biz_data] } }
   assert.equal(parsePlatformDays(wrapped)?.[0].date, '2026-08-20')
@@ -133,6 +148,12 @@ test('later drops report the delta since opening', () => {
   ;({ state } = advanceDayMeter(state, '2026-08-21', 95.5))
   const { consumed } = advanceDayMeter(state, '2026-08-21', 92)
   assert.equal(consumed, 8)
+})
+
+test('balance-delta estimates truncate instead of rounding', () => {
+  let { state, consumed } = advanceDayMeter(null, '2026-08-21', 100)
+  ;({ state, consumed } = advanceDayMeter(state, '2026-08-21', 97.999))
+  assert.equal(consumed, 2)
 })
 
 test('a new day rolls the last balance into the opening', () => {
