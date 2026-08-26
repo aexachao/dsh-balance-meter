@@ -9,11 +9,11 @@
 - **真实余额**：host 端读取 `~/.dsh/.credentials.yaml` 的 `DEEPSEEK_API_KEY`，调用 DeepSeek 官方余额接口；胶囊显示总余额，展开卡片查看赠送 / 充值分项
 - **官方消费统计**：配置 `DEEPSEEK_PLATFORM_TOKEN` 后，从平台用量接口拉取**今日消费与累计消费**（与官网用量页同源）；未配置时以余额差值估算（前缀 `≈`）
 - **用量追踪**：按 DeepSeek 官方峰谷定价把会话 token 消耗折算成人民币，展示今日 tokens 分项与按模型花费
-- **高峰 / 空闲标签**：胶囊与卡片显示当前时段（默认北京 09:00–12:00、14:00–18:00 为高峰），带状态圆点
+- **高峰 / 空闲标签**：胶囊与卡片显示当前时段（默认北京 09:00–12:00、14:00–18:00 为高峰），带状态圆点；卡片设置区同步展示当前高峰时段（其余时间即为空闲）
 - **按金额提醒**：今日花费达到阈值（元）弹 toast；可开启「达到阈值自动停止当前回合」
 - **充值快捷跳转**：卡片「去充值」在系统浏览器打开 DeepSeek 充值页
 - **设计一致**：胶囊采用 Harness `secondaryButton` 设计规范，与 session log 按钮同排同款
-- 中 / 英双语；62 个单元测试
+- 中 / 英双语；74 个单元测试
 
 ## 工作原理
 
@@ -97,7 +97,7 @@ pricingTimezone: Asia/Shanghai
 pnpm install
 pnpm typecheck   # 双 program（host + client）
 pnpm build       # tsc host → tsc client → tsdown
-pnpm test        # 构建后跑 node --test（62 用例：端点契约 / platform 聚合 / pricing / usage / ledger / client bundle）
+pnpm test        # 构建后跑 node --test（74 用例：端点契约 / platform 聚合 / pricing / usage / ledger / client bundle）
 ```
 
 ## 边界与限制
