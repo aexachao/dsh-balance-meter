@@ -262,15 +262,17 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
             />
           </label>
 
-          {/* 高峰/空闲时段：跟随配置的 peakWindows，只读展示。 */}
-          <div className={css.section}>{t('settings.bandTimes')}</div>
-          <div className={css.row}>
-            <span>{t('card.peak')}</span>
-            <span>{formatWindows(parsePeakWindows(settings.peakWindows))}</span>
-          </div>
-          <div className={css.row}>
-            <span>{t('card.off')}</span>
-            <span>{formatWindows(offPeakWindows(parsePeakWindows(settings.peakWindows)))}</span>
+          {/* 高峰/空闲时段：独立分割线区块，跟随配置的 peakWindows 只读展示。 */}
+          <div className={css.bandBlock}>
+            <div className={css.section}>{t('settings.bandTimes')}</div>
+            <div className={css.row}>
+              <span>{t('card.peak')}</span>
+              <span>{formatWindows(parsePeakWindows(settings.peakWindows))}</span>
+            </div>
+            <div className={css.row}>
+              <span>{t('card.off')}</span>
+              <span>{formatWindows(offPeakWindows(parsePeakWindows(settings.peakWindows)))}</span>
+            </div>
           </div>
           </div>
           </div>

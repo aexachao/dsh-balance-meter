@@ -234,9 +234,20 @@
   color: var(--dsw-alias-label-secondary, #a1a1aa);
 }
 
+.row > span:first-child {
+  /* 标签不参与 flex 收缩：长值换行时标签保持单行完整。 */
+  flex: none;
+  white-space: nowrap;
+}
+
 .row > span:last-child {
   color: var(--dsw-alias-label-primary, #e5e7eb);
   font-variant-numeric: tabular-nums;
+  /* 值可收缩折行并右对齐；标签已固定，长值不会反压标签。 */
+  flex: 1 1 auto;
+  text-align: right;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .section {
@@ -255,6 +266,16 @@
 /* 设置区与上方统计数据之间的分割线；内部 flex column 让字段/时段行
    共享与卡片其余部分一致的 6px 垂直间距。 */
 .settingsBlock {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--dsw-alias-border-l1, #27272a);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 高峰/空闲时段区块：与设置区同款分割线，独立成块。 */
+.bandBlock {
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--dsw-alias-border-l1, #27272a);
