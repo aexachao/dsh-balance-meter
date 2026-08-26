@@ -39,7 +39,7 @@
 ```jsonc
 {
   "dependencies": {
-    "dsh-balance-tracker": "link:/绝对路径/dsh-balance-meter"
+    "dsh-balance-tracker": "link:/绝对路径/dsh-balance-tracker"
     // ...其它依赖
   },
   "dsh": {
