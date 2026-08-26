@@ -1,6 +1,6 @@
 {
   "name": "dsh-balance-tracker",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Real DeepSeek balance and spend tracker for DeepSeek Harness: official account balance and consumption in the session header, monetary spend alert with auto-stop, token breakdown by peak/off-peak pricing. Fork of ds-budget-meter.",
   "author": "ai-suifeng",
   "license": "MIT",
