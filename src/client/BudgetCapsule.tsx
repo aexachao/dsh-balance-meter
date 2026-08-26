@@ -265,8 +265,8 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
           {/* 高峰时段：独立分割线区块，跟随配置的 peakWindows 只读展示
               （其余时间即为空闲，无需单独列出）。 */}
           <div className={css.bandBlock}>
-            <div className={css.section}>{t('settings.bandTimes')}</div>
             <div className={css.row}>
+              <span>{t('settings.bandTimes')}</span>
               <span>{formatWindows(parsePeakWindows(settings.peakWindows))}</span>
             </div>
           </div>
