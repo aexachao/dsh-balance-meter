@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { aggregateSince, periodStartMs } from './ledger.ts'
-import { isPeak, parsePeakWindows } from './pricing.ts'
+import { formatWindows, isPeak, offPeakWindows, parsePeakWindows } from './pricing.ts'
 import {
   getSettings, ledger, markNotified, subscribeSettings, updateSettings, wasNotified,
 } from './store.ts'
@@ -261,6 +261,17 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
               onChange={(event) => updateSettings({ stopOnOver: event.target.checked })}
             />
           </label>
+
+          {/* 高峰/空闲时段：跟随配置的 peakWindows，只读展示。 */}
+          <div className={css.section}>{t('settings.bandTimes')}</div>
+          <div className={css.row}>
+            <span>{t('card.peak')}</span>
+            <span>{formatWindows(parsePeakWindows(settings.peakWindows))}</span>
+          </div>
+          <div className={css.row}>
+            <span>{t('card.off')}</span>
+            <span>{formatWindows(offPeakWindows(parsePeakWindows(settings.peakWindows)))}</span>
+          </div>
           </div>
           </div>
         </>

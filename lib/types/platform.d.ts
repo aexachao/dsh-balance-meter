@@ -20,8 +20,12 @@ export interface PlatformDay {
 /**
  * 平台 usage/cost 响应 → 按日费用列表。
  * 响应信封：`{ code: 0, data: { biz_code: 0, biz_data: { days: [
- *   { date: "YYYY-MM-DD", data: [ { usage: [ { cost|amount, ... } ] } ] }
- * ] } } }`。解析防御字段改名；无数据或形状不符返回 null。
+ *   { date: "YYYY-MM-DD", data: [ { usage: [ { type, amount } ] } ] }
+ * ] } } }`。usage 项的 `type` 只是计费维度标签（`PROMPT_TOKEN` /
+ * `PROMPT_CACHE_HIT_TOKEN` / `PROMPT_CACHE_MISS_TOKEN` / `RESPONSE_TOKEN` /
+ * `REQUEST`），`amount` 一律是金额（元），官方接口不提供 token 数量——
+ * token 数只能来自 harness 会话统计。解析防御字段改名；无数据或形状
+ * 不符返回 null。
  */
 export declare function parsePlatformDays(body: unknown): PlatformDay[] | null;
 /** 从平台某月费用列表取某天的费用；无该天返回 null。 */

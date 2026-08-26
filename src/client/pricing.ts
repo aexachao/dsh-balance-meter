@@ -49,6 +49,32 @@ export function parsePeakWindows(spec: string): PeakWindow[] {
   return windows
 }
 
+/** 高峰窗口的补集（空闲时段）；窗口先按开始时间排序后取间隙与首尾。 */
+export function offPeakWindows(windows: readonly PeakWindow[]): PeakWindow[] {
+  const sorted = [...windows].sort((a, b) => a.startMin - b.startMin)
+  const gaps: PeakWindow[] = []
+  let cursor = 0
+  for (const w of sorted) {
+    if (w.startMin > cursor) gaps.push({ startMin: cursor, endMin: w.startMin })
+    if (w.endMin > cursor) cursor = w.endMin
+  }
+  if (cursor < 24 * 60) gaps.push({ startMin: cursor, endMin: 24 * 60 })
+  return gaps
+}
+
+/** `HH:MM` from minutes of day. */
+function formatMinutes(minutes: number): string {
+  const h = String(Math.floor(minutes / 60)).padStart(2, '0')
+  const m = String(minutes % 60).padStart(2, '0')
+  return `${h}:${m}`
+}
+
+/** `09:00-12:00、14:00-18:00` from windows (empty → `—`). */
+export function formatWindows(windows: readonly PeakWindow[]): string {
+  if (windows.length === 0) return '—'
+  return windows.map((w) => `${formatMinutes(w.startMin)}-${formatMinutes(w.endMin)}`).join('、')
+}
+
 /** Minutes-of-day in `timeZone` for one epoch-ms instant. */
 function minutesOfDay(timeMs: number, timeZone: string): number {
   const parts = new Intl.DateTimeFormat('en-GB', {
