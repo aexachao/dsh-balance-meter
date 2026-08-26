@@ -267,7 +267,6 @@ export function BudgetCapsule({ t }: BudgetCapsuleProps) {
           <div className={css.bandBlock}>
             <div className={css.section}>{t('settings.bandTimes')}</div>
             <div className={css.row}>
-              <span>{t('card.peak')}</span>
               <span>{formatWindows(parsePeakWindows(settings.peakWindows))}</span>
             </div>
           </div>
