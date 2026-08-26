@@ -6,11 +6,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aexachao/dsh-balance-meter.git"
+    "url": "git+https://github.com/aexachao/dsh-balance-tracker.git"
   },
-  "homepage": "https://github.com/aexachao/dsh-balance-meter#readme",
+  "homepage": "https://github.com/aexachao/dsh-balance-tracker#readme",
   "bugs": {
-    "url": "https://github.com/aexachao/dsh-balance-meter/issues"
+    "url": "https://github.com/aexachao/dsh-balance-tracker/issues"
   },
   "keywords": [
     "deepseek-harness",
