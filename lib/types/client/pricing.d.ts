@@ -26,8 +26,6 @@ export interface PeakWindow {
 }
 /** Parse `HH:MM-HH:MM,HH:MM-HH:MM` into windows; malformed parts are dropped. */
 export declare function parsePeakWindows(spec: string): PeakWindow[];
-/** 高峰窗口的补集（空闲时段）；窗口先按开始时间排序后取间隙与首尾。 */
-export declare function offPeakWindows(windows: readonly PeakWindow[]): PeakWindow[];
 /** `09:00-12:00、14:00-18:00` from windows (empty → `—`). */
 export declare function formatWindows(windows: readonly PeakWindow[]): string;
 /** Whether `timeMs` falls inside a peak window (start inclusive, end exclusive). */
